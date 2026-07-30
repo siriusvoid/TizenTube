@@ -1,0 +1,72 @@
+name: Build and publish userScript.js
+
+# Builds mods/ into dist/userScript.js, commits it back to the repo and
+# publishes it to GitHub Pages (https://<owner>.github.io/<repo>/userScript.js).
+#
+# Pages is what the TVs load: a deploy replaces the file directly and it is
+# served within minutes. jsDelivr's GitHub mode
+# (cdn.jsdelivr.net/gh/<owner>/<repo>@main/dist/userScript.js) is kept as the
+# fallback, but it resolves @main to a commit on its own and can keep serving
+# an older one for up to 12 hours, which a purge does not reliably fix.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mods/**'
+      - '!mods/dist/**'
+  workflow_dispatch: {}
+
+# One run at a time, so the build pushed last is the one published last.
+concurrency:
+  group: build-userscript
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}userScript.js
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mods/package-lock.json
+
+      - name: Install mods dependencies
+        working-directory: mods
+        run: npm install
+
+      - name: Build userScript.js
+        working-directory: mods
+        run: npm run build
+
+      - name: Commit dist/userScript.js
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore: rebuild userScript.js'
+          file_pattern: dist/userScript.js
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Publish to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Purge jsDelivr cache
+        if: success()
+        run: |
+          curl -s "https://purge.jsdelivr.net/gh/${{ github.repository }}@main/dist/userScript.js" || true
