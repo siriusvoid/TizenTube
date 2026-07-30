@@ -237,6 +237,11 @@ export default function modernUI(update, parameters) {
                     value: 'enableHideEndScreenCards'
                 },
                 {
+                    name: t('settings.options.misc.options.viewCounts'),
+                    icon: 'VISIBILITY_OFF',
+                    value: 'enableHideViewCounts'
+                },
+                {
                     name: t('settings.options.misc.options.youThereRenderer'),
                     icon: 'HELP',
                     value: 'enableYouThereRenderer'

@@ -1,0 +1,48 @@
+name: Build and commit userScript.js
+
+# Builds mods/ into dist/userScript.js and commits it back to the repo, so
+# jsDelivr's GitHub CDN mode (cdn.jsdelivr.net/gh/<owner>/<repo>@main/dist/userScript.js)
+# always serves whatever's on main, without a separate npm publish step.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mods/**'
+      - '!mods/dist/**'
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mods/package-lock.json
+
+      - name: Install mods dependencies
+        working-directory: mods
+        run: npm install
+
+      - name: Build userScript.js
+        working-directory: mods
+        run: npm run build
+
+      - name: Commit dist/userScript.js
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore: rebuild userScript.js [skip ci]'
+          file_pattern: dist/userScript.js
+
+      - name: Purge jsDelivr cache
+        if: success()
+        run: |
+          curl -s "https://purge.jsdelivr.net/gh/${{ github.repository }}@main/dist/userScript.js" || true

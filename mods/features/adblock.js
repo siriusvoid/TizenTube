@@ -40,6 +40,10 @@ JSON.parse = function () {
       r.adSlots = [];
     }
 
+    if (configRead('enableHideViewCounts')) {
+      stripViewCountFields(r);
+    }
+
     if (r.paidContentOverlay && !configRead('enablePaidPromotionOverlay')) {
       r.paidContentOverlay = null;
     }
@@ -295,6 +299,7 @@ function processShelves(shelves, shouldAddPreviews = true) {
       deArrowify(shelve.shelfRenderer.content.horizontalListRenderer.items);
       hqify(shelve.shelfRenderer.content.horizontalListRenderer.items);
       addLongPress(shelve.shelfRenderer.content.horizontalListRenderer.items);
+      hideViewCountsFromTiles(shelve.shelfRenderer.content.horizontalListRenderer.items);
       if (shouldAddPreviews) {
         addPreviews(shelve.shelfRenderer.content.horizontalListRenderer.items);
       }
@@ -309,6 +314,56 @@ function processShelves(shelves, shouldAddPreviews = true) {
         shelve.shelfRenderer.content.horizontalListRenderer.items = shelve.shelfRenderer.content.horizontalListRenderer.items.filter(item => !item.tileRenderer?.onSelectCommand?.reelWatchEndpoint);
       }
     }
+  }
+}
+
+/**
+ * Removes the "views" line item from tile metadata (used on shelves/grids,
+ * e.g. home screen, search results, channel pages) when the user has
+ * enabled the "Hide View Counts" setting.
+ */
+function hideViewCountsFromTiles(items) {
+  if (!configRead('enableHideViewCounts')) return;
+  for (const item of items) {
+    const lines = item.tileRenderer?.metadata?.tileMetadataRenderer?.lines;
+    if (!lines) continue;
+    for (const line of lines) {
+      if (!line.lineRenderer?.items) continue;
+      line.lineRenderer.items = line.lineRenderer.items.filter((lineItem) => {
+        const text =
+          lineItem.lineItemRenderer?.text?.simpleText ||
+          lineItem.lineItemRenderer?.text?.runs?.map((run) => run.text).join('') ||
+          '';
+        return !/\bviews?\b/i.test(text);
+      });
+    }
+  }
+}
+
+/**
+ * Strips well-known Innertube "view count" fields wherever they appear in a
+ * parsed response (watch page info panel, tile renderers, etc.) so that
+ * downstream UI code has nothing to render.
+ */
+const VIEW_COUNT_KEYS = new Set([
+  'viewCountText',
+  'shortViewCountText',
+  'originalViewCount',
+  'videoViewCountRenderer'
+]);
+
+function stripViewCountFields(node) {
+  if (!node || typeof node !== 'object') return;
+  if (Array.isArray(node)) {
+    for (const child of node) stripViewCountFields(child);
+    return;
+  }
+  for (const key of Object.keys(node)) {
+    if (VIEW_COUNT_KEYS.has(key)) {
+      delete node[key];
+      continue;
+    }
+    stripViewCountFields(node[key]);
   }
 }
 
