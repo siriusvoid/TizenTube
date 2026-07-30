@@ -4,6 +4,20 @@ const adbhost = require('adbhost');
 const CDP = require('chrome-remote-interface');
 const fetch = require('node-fetch');
 
+// GitHub Pages serves a new build within minutes; jsDelivr's @main can lag
+// for hours, so it is only the fallback.
+const USERSCRIPT_URLS = [
+    'https://siriusvoid.github.io/TizenTube/userScript.js',
+    'https://cdn.jsdelivr.net/gh/siriusvoid/TizenTube@main/dist/userScript.js'
+];
+
+function fetchUserScript(urls) {
+    return fetch(`${urls[0]}?ver=${Date.now()}`).then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.text();
+    }).catch(e => urls.length > 1 ? fetchUserScript(urls.slice(1)) : Promise.reject(e));
+}
+
 
 var isConnecting = false;
 const isTizen3 = tizen.systeminfo.getCapability('http://tizen.org/feature/platform.version').startsWith('3.0');
@@ -16,10 +30,10 @@ function connectToDebugger(host, port, args) {
             client.Page.enable();
 
             client.on('Runtime.executionContextCreated', m => {
-                fetch('https://cdn.jsdelivr.net/npm/@foxreis/tizentube/dist/userScript.js').then(res => res.text()).then(modFile => {
+                fetchUserScript(USERSCRIPT_URLS).then(modFile => {
                     client.Runtime.evaluate({ expression: modFile, contextId: m.context.id });
                 }).catch(e => {
-                    client.Runtime.evaluate({ expression: 'alert("Failed to request to JSDelivr CDN.")', contextId: m.context.id });
+                    client.Runtime.evaluate({ expression: 'alert("Failed to load the TizenTube userscript.")', contextId: m.context.id });
                 });
             });
 

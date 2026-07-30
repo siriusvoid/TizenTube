@@ -139,7 +139,10 @@ app.all('*', (req, res) => {
                 return response.text().then((text) => {
                     if (req.url.indexOf('/tv') === 0 && req.url.indexOf('/tv_config') === -1) {
                         // Insert the userscript for TizenTube
-                        text += `<script src="https://cdn.jsdelivr.net/npm/@foxreis/tizentube/dist/userScript.js?ver=${Date.now()}"></script>`;
+                        // GitHub Pages serves a new build within minutes; jsDelivr's @main
+                        // can lag for hours, so it is only the fallback.
+                        const fallback = `var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/siriusvoid/TizenTube@main/dist/userScript.js?ver=${Date.now()}';(document.body||document.documentElement).appendChild(s);`;
+                        text += `<script src="https://siriusvoid.github.io/TizenTube/userScript.js?ver=${Date.now()}" onerror="${fallback}"></script>`;
                     }
 
                     const proxyPrefix = `http://localhost:${PORT}/cors-bypass/`;
