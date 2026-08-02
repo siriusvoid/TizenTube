@@ -343,17 +343,22 @@ function cleanDividers(items, getText) {
 }
 
 /**
- * Filters the "views" entry out of a classic lineRenderer.items array (used
- * by tile metadata on shelves/grids, and apparently also by History,
- * Playlists, and continuation responses based on real captured data) and
- * cleans up any dangling divider left behind.
+ * Filters the "views" entry, and any hidden badge (4K/8K/Auto-dubbed), out
+ * of a classic lineRenderer.items array — badges can appear as their own
+ * line item here (lineItemRenderer.badge), not just in separate badges
+ * arrays, based on real captured data. Removes the whole item rather than
+ * just its inner content, then cleans up any dangling divider left behind
+ * — same approach used for the "views" case.
  */
 function stripViewCountFromLineItems(items) {
   const getText = (lineItem) =>
     lineItem.lineItemRenderer?.text?.simpleText ||
     lineItem.lineItemRenderer?.text?.runs?.map((run) => run.text).join('') ||
     '';
-  const filtered = items.filter((lineItem) => !/\bviews?\b/i.test(getText(lineItem)));
+  const isRemovable = (lineItem) =>
+    /\bviews?\b/i.test(getText(lineItem)) ||
+    (lineItem.lineItemRenderer?.badge && isHiddenBadge(lineItem.lineItemRenderer.badge));
+  const filtered = items.filter((lineItem) => !isRemovable(lineItem));
   items.length = 0;
   items.push(...cleanDividers(filtered, getText));
 }
