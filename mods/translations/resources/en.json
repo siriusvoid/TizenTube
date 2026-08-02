@@ -40,6 +40,7 @@
                 "title": "Miscellaneous Settings",
                 "options": {
                     "endScreenCards": "Hide End Screen Cards",
+                    "viewCounts": "Hide View Counts",
                     "youThereRenderer": "Enable 'Are you still watching?' Renderer",
                     "paidPromoOverlay": "Enable 'Includes paid promotion' Overlay",
                     "whosWatching": {

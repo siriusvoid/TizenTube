@@ -40,6 +40,10 @@ JSON.parse = function () {
       r.adSlots = [];
     }
 
+    if (configRead('enableHideViewCounts')) {
+      stripViewCountFields(r);
+    }
+
     if (r.paidContentOverlay && !configRead('enablePaidPromotionOverlay')) {
       r.paidContentOverlay = null;
     }
@@ -295,6 +299,7 @@ function processShelves(shelves, shouldAddPreviews = true) {
       deArrowify(shelve.shelfRenderer.content.horizontalListRenderer.items);
       hqify(shelve.shelfRenderer.content.horizontalListRenderer.items);
       addLongPress(shelve.shelfRenderer.content.horizontalListRenderer.items);
+      hideViewCountsFromTiles(shelve.shelfRenderer.content.horizontalListRenderer.items);
       if (shouldAddPreviews) {
         addPreviews(shelve.shelfRenderer.content.horizontalListRenderer.items);
       }
@@ -309,6 +314,177 @@ function processShelves(shelves, shouldAddPreviews = true) {
         shelve.shelfRenderer.content.horizontalListRenderer.items = shelve.shelfRenderer.content.horizontalListRenderer.items.filter(item => !item.tileRenderer?.onSelectCommand?.reelWatchEndpoint);
       }
     }
+  }
+}
+
+/**
+ * Returns true if a line-item's text is just a bullet/pipe separator (e.g.
+ * " • ") rather than real content — used to clean up dangling dividers left
+ * behind after a view-count item is removed.
+ */
+function isDividerText(text) {
+  return /^[\s•·|]+$/.test(text || '');
+}
+
+/**
+ * Removes leading/trailing divider-only entries and collapses any
+ * consecutive dividers left behind after filtering content out of an array
+ * of line items / metadata parts.
+ */
+function cleanDividers(items, getText) {
+  while (items.length && isDividerText(getText(items[0]))) items.shift();
+  while (items.length && isDividerText(getText(items[items.length - 1]))) items.pop();
+  for (let i = items.length - 2; i >= 0; i--) {
+    if (isDividerText(getText(items[i])) && isDividerText(getText(items[i + 1]))) {
+      items.splice(i, 1);
+    }
+  }
+  return items;
+}
+
+/**
+ * The word for "views" in each UI language handled here, lower-cased.
+ * Tile metadata is plain localised text with no field name to go by
+ * ("1.2M views", "13 тыс. просмотров"), so the wording is the only
+ * signal there. A language not listed keeps its view counts, which is
+ * the safe way to fail.
+ */
+const VIEW_COUNT_WORDS = ['view', 'views', 'просмотр', 'просмотра', 'просмотров'];
+
+/**
+ * True for a view count in any listed language: a number plus one of the
+ * words above as a whole word. The number keeps a channel or title that
+ * merely contains the word. Split on non-letters rather than \b, since \b
+ * only knows Latin letters and never matches around Cyrillic.
+ */
+function looksLikeViewCount(text) {
+  if (!/\d/.test(text || '')) return false;
+  return text
+    .toLowerCase()
+    .split(/[^a-zа-яё]+/)
+    .some((word) => VIEW_COUNT_WORDS.indexOf(word) !== -1);
+}
+
+/**
+ * Filters the "views" entry, and any hidden badge (4K/8K/Auto-dubbed), out
+ * of a classic lineRenderer.items array — badges can appear as their own
+ * line item here (lineItemRenderer.badge), not just in separate badges
+ * arrays, based on real captured data. Removes the whole item rather than
+ * just its inner content, then cleans up any dangling divider left behind
+ * — same approach used for the "views" case.
+ */
+function stripViewCountFromLineItems(items) {
+  const getText = (lineItem) =>
+    lineItem.lineItemRenderer?.text?.simpleText ||
+    lineItem.lineItemRenderer?.text?.runs?.map((run) => run.text).join('') ||
+    '';
+  const isRemovable = (lineItem) =>
+    looksLikeViewCount(getText(lineItem)) ||
+    (lineItem.lineItemRenderer?.badge && isHiddenBadge(lineItem.lineItemRenderer.badge));
+  const filtered = items.filter((lineItem) => !isRemovable(lineItem));
+  items.length = 0;
+  items.push(...cleanDividers(filtered, getText));
+}
+
+/**
+ * Removes the "views" line item from tile metadata (used on shelves/grids,
+ * e.g. home screen, search results, channel pages) when the user has
+ * enabled the "Hide View Counts" setting.
+ */
+function hideViewCountsFromTiles(items) {
+  if (!configRead('enableHideViewCounts')) return;
+  for (const item of items) {
+    const lines = item.tileRenderer?.metadata?.tileMetadataRenderer?.lines;
+    if (!lines) continue;
+    for (const line of lines) {
+      if (!line.lineRenderer?.items) continue;
+      stripViewCountFromLineItems(line.lineRenderer.items);
+    }
+  }
+}
+
+/**
+ * Strips well-known Innertube "view count" fields wherever they appear in a
+ * parsed response (watch page info panel, tile renderers, etc.) so that
+ * downstream UI code has nothing to render.
+ */
+const VIEW_COUNT_KEYS = new Set([
+  'viewCountText',
+  'shortViewCountText',
+  'originalViewCount',
+  'videoViewCountRenderer'
+]);
+
+/**
+ * Newer YouTube surfaces (playlists, history, and some home shelves) use
+ * lockupViewModel-style objects instead of the classic tileRenderer, with
+ * metadata spread across "metadataRows" -> "metadataParts" arrays of plain
+ * text parts rather than named fields. Filtered by text content since the
+ * exact field names for this newer structure aren't documented and may
+ * shift between YouTube TV releases.
+ */
+function stripViewCountFromMetadataParts(node) {
+  if (!Array.isArray(node)) return;
+  const getText = (part) =>
+    part?.text?.content || part?.text?.simpleText || (typeof part === 'string' ? part : '') || '';
+  const filtered = node.filter((part) => !looksLikeViewCount(getText(part)));
+  if (filtered.length !== node.length) {
+    node.length = 0;
+    node.push(...cleanDividers(filtered, getText));
+  }
+}
+
+/**
+ * Badges (quality/format indicators shown on tiles) whose label matches
+ * this pattern get hidden alongside view counts, reusing the same
+ * "Hide View Counts" toggle rather than adding separate settings — based
+ * on real captured metadataBadgeRenderer.label values: "4K", "8K",
+ * "Auto-dubbed" — and "Автодубляж" as the badge reads on a Russian TV.
+ * 4K/8K are never translated, so they are matched exactly; the dubbed
+ * badge is, so it is matched by word stem.
+ */
+const HIDDEN_BADGE_LABELS = /^(4K|8K)$/i;
+const DUBBED_BADGE_WORDS = ['dubbed', 'дубл'];
+
+function isHiddenBadge(badgeWrapper) {
+  const label = badgeWrapper?.metadataBadgeRenderer?.label;
+  if (typeof label !== 'string') return false;
+  const text = label.trim();
+  if (HIDDEN_BADGE_LABELS.test(text)) return true;
+  const lower = text.toLowerCase();
+  return DUBBED_BADGE_WORDS.some((word) => lower.indexOf(word) !== -1);
+}
+
+function stripViewCountFields(node) {
+  if (!node || typeof node !== 'object') return;
+  if (Array.isArray(node)) {
+    for (const child of node) stripViewCountFields(child);
+    return;
+  }
+  for (const key of Object.keys(node)) {
+    if (VIEW_COUNT_KEYS.has(key)) {
+      delete node[key];
+      continue;
+    }
+    if (key === 'metadataParts' && Array.isArray(node[key]) && configRead('enableHideViewCounts')) {
+      stripViewCountFromMetadataParts(node[key]);
+    }
+    if (key === 'badges' && Array.isArray(node[key]) && configRead('enableHideViewCounts')) {
+      node[key] = node[key].filter((badge) => !isHiddenBadge(badge));
+    }
+    if (key === 'badge' && node[key] && configRead('enableHideViewCounts') && isHiddenBadge(node[key])) {
+      delete node[key];
+      continue;
+    }
+    if (
+      key === 'lineRenderer' &&
+      node[key] &&
+      Array.isArray(node[key].items) &&
+      configRead('enableHideViewCounts')
+    ) {
+      stripViewCountFromLineItems(node[key].items);
+    }
+    stripViewCountFields(node[key]);
   }
 }
 

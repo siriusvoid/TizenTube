@@ -40,6 +40,7 @@
                 "title": "Разное",
                 "options": {
                     "endScreenCards": "Скрыть карточки в конце видео",
+                    "viewCounts": "Скрыть число просмотров",
                     "youThereRenderer": "Включить сообщение «Вы ещё смотрите?»",
                     "paidPromoOverlay": "Включить уведомление «Содержит рекламу»",
                     "whosWatching": {
