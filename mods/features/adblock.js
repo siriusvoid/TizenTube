@@ -406,6 +406,20 @@ function stripViewCountFromMetadataParts(node) {
   }
 }
 
+/**
+ * Badges (quality/format indicators shown on tiles) whose label matches
+ * this pattern get hidden alongside view counts, reusing the same
+ * "Hide View Counts" toggle rather than adding separate settings — based
+ * on real captured metadataBadgeRenderer.label values: "4K", "8K",
+ * "Auto-dubbed".
+ */
+const HIDDEN_BADGE_LABELS = /^(4K|8K|auto-?dubbed)$/i;
+
+function isHiddenBadge(badgeWrapper) {
+  const label = badgeWrapper?.metadataBadgeRenderer?.label;
+  return typeof label === 'string' && HIDDEN_BADGE_LABELS.test(label.trim());
+}
+
 function stripViewCountFields(node) {
   if (!node || typeof node !== 'object') return;
   if (Array.isArray(node)) {
@@ -419,6 +433,13 @@ function stripViewCountFields(node) {
     }
     if (key === 'metadataParts' && Array.isArray(node[key]) && configRead('enableHideViewCounts')) {
       stripViewCountFromMetadataParts(node[key]);
+    }
+    if (key === 'badges' && Array.isArray(node[key]) && configRead('enableHideViewCounts')) {
+      node[key] = node[key].filter((badge) => !isHiddenBadge(badge));
+    }
+    if (key === 'badge' && node[key] && configRead('enableHideViewCounts') && isHiddenBadge(node[key])) {
+      delete node[key];
+      continue;
     }
     if (
       key === 'lineRenderer' &&
