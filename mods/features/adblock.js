@@ -318,6 +318,31 @@ function processShelves(shelves, shouldAddPreviews = true) {
 }
 
 /**
+ * Returns true if a line-item's text is just a bullet/pipe separator (e.g.
+ * " • ") rather than real content — used to clean up dangling dividers left
+ * behind after a view-count item is removed.
+ */
+function isDividerText(text) {
+  return /^[\s•·|]+$/.test(text || '');
+}
+
+/**
+ * Removes leading/trailing divider-only entries and collapses any
+ * consecutive dividers left behind after filtering content out of an array
+ * of line items / metadata parts.
+ */
+function cleanDividers(items, getText) {
+  while (items.length && isDividerText(getText(items[0]))) items.shift();
+  while (items.length && isDividerText(getText(items[items.length - 1]))) items.pop();
+  for (let i = items.length - 2; i >= 0; i--) {
+    if (isDividerText(getText(items[i])) && isDividerText(getText(items[i + 1]))) {
+      items.splice(i, 1);
+    }
+  }
+  return items;
+}
+
+/**
  * Removes the "views" line item from tile metadata (used on shelves/grids,
  * e.g. home screen, search results, channel pages) when the user has
  * enabled the "Hide View Counts" setting.
@@ -329,13 +354,14 @@ function hideViewCountsFromTiles(items) {
     if (!lines) continue;
     for (const line of lines) {
       if (!line.lineRenderer?.items) continue;
-      line.lineRenderer.items = line.lineRenderer.items.filter((lineItem) => {
-        const text =
-          lineItem.lineItemRenderer?.text?.simpleText ||
-          lineItem.lineItemRenderer?.text?.runs?.map((run) => run.text).join('') ||
-          '';
-        return !/\bviews?\b/i.test(text);
-      });
+      const getText = (lineItem) =>
+        lineItem.lineItemRenderer?.text?.simpleText ||
+        lineItem.lineItemRenderer?.text?.runs?.map((run) => run.text).join('') ||
+        '';
+      line.lineRenderer.items = line.lineRenderer.items.filter(
+        (lineItem) => !/\bviews?\b/i.test(getText(lineItem))
+      );
+      cleanDividers(line.lineRenderer.items, getText);
     }
   }
 }
@@ -352,6 +378,25 @@ const VIEW_COUNT_KEYS = new Set([
   'videoViewCountRenderer'
 ]);
 
+/**
+ * Newer YouTube surfaces (playlists, history, and some home shelves) use
+ * lockupViewModel-style objects instead of the classic tileRenderer, with
+ * metadata spread across "metadataRows" -> "metadataParts" arrays of plain
+ * text parts rather than named fields. Filtered by text content since the
+ * exact field names for this newer structure aren't documented and may
+ * shift between YouTube TV releases.
+ */
+function stripViewCountFromMetadataParts(node) {
+  if (!Array.isArray(node)) return;
+  const getText = (part) =>
+    part?.text?.content || part?.text?.simpleText || (typeof part === 'string' ? part : '') || '';
+  const filtered = node.filter((part) => !/\bviews?\b/i.test(getText(part)));
+  if (filtered.length !== node.length) {
+    node.length = 0;
+    node.push(...cleanDividers(filtered, getText));
+  }
+}
+
 function stripViewCountFields(node) {
   if (!node || typeof node !== 'object') return;
   if (Array.isArray(node)) {
@@ -362,6 +407,9 @@ function stripViewCountFields(node) {
     if (VIEW_COUNT_KEYS.has(key)) {
       delete node[key];
       continue;
+    }
+    if (key === 'metadataParts' && Array.isArray(node[key]) && configRead('enableHideViewCounts')) {
+      stripViewCountFromMetadataParts(node[key]);
     }
     stripViewCountFields(node[key]);
   }
