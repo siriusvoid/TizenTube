@@ -343,6 +343,22 @@ function cleanDividers(items, getText) {
 }
 
 /**
+ * Filters the "views" entry out of a classic lineRenderer.items array (used
+ * by tile metadata on shelves/grids, and apparently also by History,
+ * Playlists, and continuation responses based on real captured data) and
+ * cleans up any dangling divider left behind.
+ */
+function stripViewCountFromLineItems(items) {
+  const getText = (lineItem) =>
+    lineItem.lineItemRenderer?.text?.simpleText ||
+    lineItem.lineItemRenderer?.text?.runs?.map((run) => run.text).join('') ||
+    '';
+  const filtered = items.filter((lineItem) => !/\bviews?\b/i.test(getText(lineItem)));
+  items.length = 0;
+  items.push(...cleanDividers(filtered, getText));
+}
+
+/**
  * Removes the "views" line item from tile metadata (used on shelves/grids,
  * e.g. home screen, search results, channel pages) when the user has
  * enabled the "Hide View Counts" setting.
@@ -354,14 +370,7 @@ function hideViewCountsFromTiles(items) {
     if (!lines) continue;
     for (const line of lines) {
       if (!line.lineRenderer?.items) continue;
-      const getText = (lineItem) =>
-        lineItem.lineItemRenderer?.text?.simpleText ||
-        lineItem.lineItemRenderer?.text?.runs?.map((run) => run.text).join('') ||
-        '';
-      line.lineRenderer.items = line.lineRenderer.items.filter(
-        (lineItem) => !/\bviews?\b/i.test(getText(lineItem))
-      );
-      cleanDividers(line.lineRenderer.items, getText);
+      stripViewCountFromLineItems(line.lineRenderer.items);
     }
   }
 }
@@ -410,6 +419,14 @@ function stripViewCountFields(node) {
     }
     if (key === 'metadataParts' && Array.isArray(node[key]) && configRead('enableHideViewCounts')) {
       stripViewCountFromMetadataParts(node[key]);
+    }
+    if (
+      key === 'lineRenderer' &&
+      node[key] &&
+      Array.isArray(node[key].items) &&
+      configRead('enableHideViewCounts')
+    ) {
+      stripViewCountFromLineItems(node[key].items);
     }
     stripViewCountFields(node[key]);
   }
