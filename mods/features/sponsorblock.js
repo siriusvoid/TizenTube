@@ -220,6 +220,8 @@ class SponsorBlockHandler {
       this.segmentsoverlay.appendChild(elm);
     });
 
+    this.segmentsoverlay.style.setProperty('display', 'block', 'important');
+
     this.observer = new MutationObserver((mutations) => {
       mutations.forEach((m) => {
         if (m.removedNodes) {
@@ -229,12 +231,6 @@ class SponsorBlockHandler {
               this.slider.appendChild(this.segmentsoverlay);
             }
           }
-        }
-
-        if (document.querySelector('ytlr-progress-bar').getAttribute('hybridnavfocusable') === 'false') {
-          this.segmentsoverlay.style.setProperty('display', 'none', 'important');
-        } else {
-          this.segmentsoverlay.style.setProperty('display', 'block', 'important');
         }
       });
     });
