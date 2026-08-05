@@ -54,6 +54,13 @@
                     "fixUI": "Исправить интерфейс",
                     "hqThumbnails": "Включить миниатюры высокого качества",
                     "longPress": "Долгое нажатие",
+                    "instantSeek": "Мгновенная перемотка",
+                    "instantSeekDelay": {
+                        "title": "Задержка перед перемоткой",
+                        "subtitle": "Перемотка сработает через это время после последнего нажатия",
+                        "milliseconds": "{{value}} мс",
+                        "seconds": "{{value}} с"
+                    },
                     "shorts": "Shorts",
                     "videoPreviews": "Предпросмотр видео",
                     "ttWelcomeMsg": "Приветственное сообщение",

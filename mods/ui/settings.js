@@ -1,7 +1,7 @@
 import { configRead } from '../config.js';
 import { showModal, buttonItem, overlayPanelItemListRenderer, scrollPaneRenderer, overlayMessageRenderer, QrCodeRenderer } from './ytUI.js';
 import qrcode from 'qrcode-npm';
-import { t } from 'i18next';
+import i18n, { t } from 'i18next';
 import { getComprehensiveLanguageList } from '../features/moreSubtitles.js';
 
 const qrcodes = {};
@@ -289,6 +289,30 @@ export default function modernUI(update, parameters) {
                 {
                     name: t('settings.options.misc.options.longPress'),
                     value: 'enableLongPress'
+                },
+                {
+                    name: t('settings.options.misc.options.instantSeek'),
+                    icon: 'SKIP_NEXT',
+                    value: 'enableInstantSeek'
+                },
+                {
+                    name: t('settings.options.misc.options.instantSeekDelay.title'),
+                    icon: 'TIMER',
+                    value: null,
+                    menuId: 'tt-instant-seek-delay',
+                    menuHeader: {
+                        title: t('settings.options.misc.options.instantSeekDelay.title'),
+                        subtitle: t('settings.options.misc.options.instantSeekDelay.subtitle')
+                    },
+                    options: [200, 300, 400, 500, 600, 800, 1000, 1500].map((ms) => {
+                        return {
+                            name: ms >= 1000
+                                ? t('settings.options.misc.options.instantSeekDelay.seconds', { value: (ms / 1000).toLocaleString(i18n.language) })
+                                : t('settings.options.misc.options.instantSeekDelay.milliseconds', { value: ms }),
+                            key: 'instantSeekDelayMs',
+                            value: ms
+                        }
+                    })
                 },
                 {
                     name: t('settings.options.misc.options.shorts'),

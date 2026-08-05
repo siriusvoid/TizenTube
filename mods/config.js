@@ -23,6 +23,8 @@ const defaultConfig = {
   enableHqThumbnails: false,
   enableChapters: true,
   enableLongPress: true,
+  enableInstantSeek: true,
+  instantSeekDelayMs: 500,
   enableShorts: true,
   dontCheckUpdateUntil: 0,
   enableWhoIsWatchingMenu: false,

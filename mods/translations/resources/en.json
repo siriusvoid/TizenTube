@@ -54,6 +54,13 @@
                     "fixUI": "Fix UI",
                     "hqThumbnails": "Enable High Quality Thumbnails",
                     "longPress": "Enable Long Press Actions",
+                    "instantSeek": "Instant Seek",
+                    "instantSeekDelay": {
+                        "title": "Instant Seek Delay",
+                        "subtitle": "How long to wait after you stop moving before the seek commits",
+                        "milliseconds": "{{value}}ms",
+                        "seconds": "{{value}}s"
+                    },
                     "shorts": "Enable Shorts",
                     "videoPreviews": "Enable Video Previews",
                     "ttWelcomeMsg": "Show TT Welcome Message",
