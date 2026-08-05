@@ -6,13 +6,13 @@ import { configRead } from '../config.js';
 // a short timer, and the commit (a synthetic OK press) only fires once
 // movement actually pauses. That's what lets rapid or held-down seeking
 // keep moving freely - each step no longer waits on a round trip through
-// the native commit handler before the next one can register.
+// the native commit handler before the next one can register. The delay
+// itself is a Settings > Misc option (instantSeekDelayMs), so it can be
+// tuned on-device without a new build.
 //
 // We deliberately don't reimplement seeking ourselves - letting YouTube's
 // own handler move the highlight and commit it keeps all of its native
 // bounds-checking and seek logic intact.
-
-const SEEK_COMMIT_DELAY_MS = 500;
 
 let pendingTimer = null;
 let pendingTarget = null;
@@ -43,6 +43,7 @@ function cancelPending() {
 function scheduleCommit(target) {
     cancelPending();
     pendingTarget = target;
+    const delay = Number(configRead('instantSeekDelayMs')) || 500;
     pendingTimer = setTimeout(() => {
         const t = pendingTarget;
         pendingTimer = null;
@@ -50,7 +51,7 @@ function scheduleCommit(target) {
         if (document.activeElement === t) {
             commitSeek(t);
         }
-    }, SEEK_COMMIT_DELAY_MS);
+    }, delay);
 }
 
 document.addEventListener('keydown', (evt) => {

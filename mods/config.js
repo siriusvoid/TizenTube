@@ -24,6 +24,7 @@ const defaultConfig = {
   enableChapters: true,
   enableLongPress: true,
   enableInstantSeek: true,
+  instantSeekDelayMs: 500,
   enableShorts: true,
   dontCheckUpdateUntil: 0,
   enableWhoIsWatchingMenu: false,

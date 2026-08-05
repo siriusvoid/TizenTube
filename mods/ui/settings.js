@@ -296,6 +296,23 @@ export default function modernUI(update, parameters) {
                     value: 'enableInstantSeek'
                 },
                 {
+                    name: 'Instant Seek Delay',
+                    icon: 'TIMER',
+                    value: null,
+                    menuId: 'tt-instant-seek-delay',
+                    menuHeader: {
+                        title: 'Instant Seek Delay',
+                        subtitle: 'How long to wait after you stop moving before the seek commits'
+                    },
+                    options: [200, 300, 400, 500, 600, 800, 1000, 1500].map((ms) => {
+                        return {
+                            name: ms >= 1000 ? `${ms / 1000}s` : `${ms}ms`,
+                            key: 'instantSeekDelayMs',
+                            value: ms
+                        }
+                    })
+                },
+                {
                     name: t('settings.options.misc.options.shorts'),
                     icon: 'YOUTUBE_SHORTS_FILL_24',
                     value: 'enableShorts'
