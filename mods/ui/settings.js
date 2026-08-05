@@ -291,6 +291,11 @@ export default function modernUI(update, parameters) {
                     value: 'enableLongPress'
                 },
                 {
+                    name: 'Instant Seek',
+                    icon: 'SKIP_NEXT',
+                    value: 'enableInstantSeek'
+                },
+                {
                     name: t('settings.options.misc.options.shorts'),
                     icon: 'YOUTUBE_SHORTS_FILL_24',
                     value: 'enableShorts'
