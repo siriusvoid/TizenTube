@@ -52,6 +52,51 @@ const barTypes = {
   }
 };
 
+// Paints segment colors as a linear-gradient onto the native
+// [idomkey="cue-ranges"] element instead of creating a separate overlay
+// div. That element already sits in the correct DOM position on the
+// progress bar - below the pointer, above the watched-progress fill -
+// confirmed empty/inert on both a normal video and a live stream via
+// devtools, so repainting its background doesn't fight for stacking
+// order the way a new inserted element did.
+function hexToRgba(hex, opacity) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
+
+function buildSegmentsGradient(segments, videoDuration) {
+  if (!videoDuration || !segments || !segments.length) return 'none';
+
+  // One gradient layer per segment, stacked via CSS's multiple-background
+  // support, rather than merging every segment into one gradient's stop
+  // list. Overlapping segments (real data has this - e.g. an intro and a
+  // music_offtopic segment both starting at 0s) would otherwise produce
+  // out-of-order stop positions, which browsers clamp unpredictably.
+  // Separate layers composite via ordinary alpha blending instead, the
+  // same way the old separately-positioned divs did.
+  return segments.map((segment) => {
+    const [start, end] = segment.segment;
+    const barType = barTypes[segment.category] || { color: '#0000ff', opacity: 0.7 };
+    const rgba = hexToRgba(barType.color, barType.opacity);
+
+    const startPercent = Math.max(0, Math.min(100, (100 * start) / videoDuration));
+    // poi_highlight segments are a single point in time (start === end) -
+    // give them a minimum visible width, same as the old 1%-wide dot did.
+    const endPercent = segment.category === 'poi_highlight'
+      ? Math.min(100, startPercent + 1)
+      : Math.max(0, Math.min(100, (100 * end) / videoDuration));
+
+    const stops = [];
+    if (startPercent > 0) stops.push(`transparent 0%`, `transparent ${startPercent}%`);
+    stops.push(`${rgba} ${startPercent}%`, `${rgba} ${endPercent}%`);
+    if (endPercent < 100) stops.push(`transparent ${endPercent}%`, 'transparent 100%');
+
+    return `linear-gradient(to right, ${stops.join(', ')})`;
+  }).join(', ');
+}
+
 const sponsorblockAPI = 'https://sponsor.ajay.app/api';
 
 class SponsorBlockHandler {
@@ -60,9 +105,8 @@ class SponsorBlockHandler {
 
   attachVideoTimeout = null;
   nextSkipTimeout = null;
-  sliderInterval = null;
 
-  observer = null;
+  cueRangesEl = null;
   scheduleSkipHandler = null;
   durationChangeHandler = null;
   segments = null;
@@ -107,12 +151,10 @@ class SponsorBlockHandler {
     this.skippableCategories = this.getSkippableCategories();
 
     this.scheduleSkipHandler = () => {
-      const slider = document.querySelector('div[idomkey="slider"]');
-      const sliderRect = slider?.getBoundingClientRect();
-      const isOldUI = !document.querySelector('div[idomkey="Metadata-Section"]');
-      if (isOldUI && sliderRect) {
-        this.segmentsoverlay.style.setProperty('top', `${sliderRect.top}px`, 'important');
-      }
+      // Reapplies on every tick as a safety net in case native code ever
+      // resets this element's background - cheap (a single style write,
+      // no DOM creation/removal) so doing it defensively here is fine.
+      this.applySegmentsGradient();
       this.scheduleSkip();
     }
     this.durationChangeHandler = () => this.buildOverlay();
@@ -170,7 +212,7 @@ class SponsorBlockHandler {
   }
 
   buildOverlay() {
-    if (this.segmentsoverlay) {
+    if (this.cueRangesEl) {
       console.info('Overlay already built');
       return;
     }
@@ -180,73 +222,17 @@ class SponsorBlockHandler {
       return;
     }
 
-    const videoDuration = this.video.duration;
-    const slider = document.querySelector('div[idomkey="slider"]');
-    if (!slider) return setTimeout(() => this.buildOverlay(), 100);
+    const cueRangesEl = document.querySelector('ytlr-progress-bar [idomkey="cue-ranges"]');
+    if (!cueRangesEl) return setTimeout(() => this.buildOverlay(), 100);
 
-    this.segmentsoverlay = document.createElement('div');
+    this.cueRangesEl = cueRangesEl;
+    this.applySegmentsGradient();
+  }
 
-    this.segmentsoverlay.classList.add('ytLrProgressBarSlider', 'ytLrProgressBarSliderRectangularProgressBar');
-    this.segmentsoverlay.style.setProperty('z-index', '10', 'important');
-    this.segmentsoverlay.style.setProperty('background-color', 'rgba(0, 0, 0, 0)', 'important');
-    this.segmentsoverlay.style.setProperty('width', '72rem', 'important');
-    this.segmentsoverlay.style.setProperty('left', '4rem', 'important');
-    const sliderRect = slider.getBoundingClientRect();
-    if (!slider.classList.contains('ytLrProgressBarSlider')) {
-      for (let i = 0; i < slider.classList.length; i++) {
-        this.segmentsoverlay.classList.add(slider.classList[i]);
-      }
-      this.segmentsoverlay.style.setProperty('height', `${sliderRect.height}px`, 'important');
-      this.segmentsoverlay.style.setProperty('bottom', `${sliderRect.bottom - sliderRect.top}px`, 'important');      
-    }
-    this.segments.forEach((segment) => {
-      const [start, end] = segment.segment;
-      const barType = barTypes[segment.category] || {
-        color: 'blue',
-        opacity: 0.7
-      };
-
-      const leftPercent = videoDuration ? (100.0 * start) / videoDuration : 0;
-      const widthPercent = videoDuration ? (100.0 * (end - start)) / videoDuration : 0;
-
-      const elm = document.createElement('div');
-      elm.style.setProperty('background-color', barType.color, 'important');
-      elm.style.setProperty('opacity', barType.opacity, 'important');
-      elm.style.setProperty('height', '100%', 'important');
-      elm.style.setProperty('width', `${segment.category === 'poi_highlight' ? 1 : widthPercent}%`, 'important');
-      elm.style.setProperty('left', `${leftPercent}%`, 'important');
-      elm.style.setProperty('position', 'absolute', 'important');
-      console.info('Generated element', elm, 'from', segment);
-      this.segmentsoverlay.appendChild(elm);
-    });
-
-    this.segmentsoverlay.style.setProperty('display', 'block', 'important');
-
-    this.observer = new MutationObserver((mutations) => {
-      mutations.forEach((m) => {
-        if (m.removedNodes) {
-          for (const node of m.removedNodes) {
-            if (node === this.segmentsoverlay) {
-              console.info('bringing back segments overlay');
-              this.slider.appendChild(this.segmentsoverlay);
-            }
-          }
-        }
-      });
-    });
-
-    this.sliderInterval = setInterval(() => {
-      this.slider = document.querySelector('ytlr-redux-connect-ytlr-progress-bar');
-      if (this.slider) {
-        clearInterval(this.sliderInterval);
-        this.sliderInterval = null;
-        this.observer.observe(this.slider, {
-          childList: true,
-          subtree: true
-        });
-        this.slider.appendChild(this.segmentsoverlay);
-      }
-    }, 500);
+  applySegmentsGradient() {
+    if (!this.cueRangesEl || !this.video) return;
+    const gradient = buildSegmentsGradient(this.segments, this.video.duration);
+    this.cueRangesEl.style.setProperty('background-image', gradient, 'important');
   }
 
   scheduleSkip() {
@@ -356,19 +342,9 @@ class SponsorBlockHandler {
       this.attachVideoTimeout = null;
     }
 
-    if (this.sliderInterval) {
-      clearInterval(this.sliderInterval);
-      this.sliderInterval = null;
-    }
-
-    if (this.observer) {
-      this.observer.disconnect();
-      this.observer = null;
-    }
-
-    if (this.segmentsoverlay) {
-      this.segmentsoverlay.remove();
-      this.segmentsoverlay = null;
+    if (this.cueRangesEl) {
+      this.cueRangesEl.style.removeProperty('background-image');
+      this.cueRangesEl = null;
     }
 
     if (this.video) {
