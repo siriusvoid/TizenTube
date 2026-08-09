@@ -1,92 +1,72 @@
 import { configRead } from '../config.js';
 
-// Intercepts the innertube /next response and, when it detects we're on the
-// last video of a real YouTube playlist, strips the playlistId from the
-// NORMAL-mode autoplay target so native autonav can't continue into an
-// unrelated recommended video.
+// Patches the innertube /next response's watchNext data: when on the true
+// last video of a real YouTube playlist, the NORMAL-mode autoplay set's
+// target normally falls back to an unrelated recommended video (no
+// playlistId - this is what produced the "random video" behavior).
 //
-// Confirmed via device testing that this app fetches /next via
-// XMLHttpRequest (not fetch), so we intercept at the responseText/response
-// getter level - this works regardless of when/how the native code reads
-// the response, since XHR doesn't offer a clean "replace the response"
-// hook the way fetch's Response object does.
-function neutralizeEndOfPlaylistAutonav(json) {
+// Rather than stripping that target (confirmed via CDP to leave native
+// code with a malformed object, which renders nothing at all - a black
+// screen, not even the native endscreen component gets created), this
+// repoints the same target at the current video itself, reusing the
+// replayVideoRenderer.pivotVideoRenderer data already present in every
+// /next response. Native code then gets a complete, well-formed object to
+// render its normal "Up Next"-style overlay - just offering to replay the
+// video (with a visible Replay label/thumbnail) instead of autoplaying
+// something unrelated.
+//
+// Uses the same global JSON.parse monkeypatch technique already used
+// elsewhere in this codebase (see adblock.js) rather than an XHR getter
+// override - simpler, and doesn't care whether the response was read via
+// fetch or XHR.
+const origParse = JSON.parse;
+JSON.parse = function () {
+    const r = origParse.apply(this, arguments);
     try {
-        const results = json?.contents?.singleColumnWatchNextResults;
-        const playlist = results?.playlist?.playlist;
-        if (!playlist) return json; // not a playlist video at all
+        if (configRead('enableStopAtPlaylistEnd')) {
+            const results = r?.contents?.singleColumnWatchNextResults;
+            const playlist = results?.playlist?.playlist;
+            const sets = results?.autoplay?.autoplay?.sets;
+            const pivot = results?.autoplay?.autoplay?.replayVideoRenderer?.pivotVideoRenderer;
 
-        const isLastVideo = playlist.currentIndex === playlist.totalVideos - 1;
-        if (!isLastVideo) return json;
+            if (playlist && sets && pivot?.navigationEndpoint?.watchEndpoint) {
+                const isLastVideo = playlist.currentIndex === playlist.totalVideos - 1;
+                if (isLastVideo) {
+                    for (const set of sets) {
+                        if (set.mode !== 'NORMAL') continue; // leave LOOP/SHUFFLE/LOOP_ONE alone
 
-        const sets = results?.autoplay?.autoplay?.sets;
-        if (!sets) return json;
+                        const avr = set.autoplayVideoRenderer;
+                        if (!avr) continue;
 
-        for (const set of sets) {
-            if (set.mode !== 'NORMAL') continue; // leave LOOP/SHUFFLE/LOOP_ONE alone
-            const endpoint = set.autoplayVideoRenderer?.autonavEndpointRenderer?.endpoint
-                ?? set.autoplayVideoRenderer?.autoplayEndpointRenderer?.endpoint;
-            if (endpoint?.watchEndpoint && !endpoint.watchEndpoint.playlistId) {
-                // Confirmed fallback-to-recommendation case - remove the set
-                // entirely so there's nothing for native autonav to act on.
-                set.autoplayVideoRenderer = undefined;
-            }
-        }
-    } catch (e) {
-        console.error('[TizenTube] stopAtPlaylistEnd: failed to process /next response', e);
-    }
-    return json;
-}
+                        const targetEndpoint = pivot.navigationEndpoint;
+                        const rendererKey = avr.autonavEndpointRenderer ? 'autonavEndpointRenderer' : 'autoplayEndpointRenderer';
+                        if (avr[rendererKey]?.endpoint) {
+                            avr[rendererKey].endpoint = targetEndpoint;
+                        }
 
-function getMutatedResponseText(xhr, originalGetter) {
-    if (xhr.__ttMutatedText !== undefined) return xhr.__ttMutatedText;
+                        const nextRenderer = set.nextVideoRenderer?.autoplayEndpointRenderer
+                            ?? set.nextVideoRenderer?.maybeHistoryEndpointRenderer;
+                        if (nextRenderer?.endpoint) {
+                            nextRenderer.endpoint = targetEndpoint;
+                            // useNextHistoryItem tells native code to navigate based on
+                            // actual browser history instead of `endpoint` - clear it so
+                            // our injected replay target actually gets used.
+                            delete nextRenderer.useNextHistoryItem;
+                        }
 
-    const raw = originalGetter.call(xhr);
-    let mutated = raw;
-    try {
-        const json = JSON.parse(raw);
-        neutralizeEndOfPlaylistAutonav(json);
-        mutated = JSON.stringify(json);
-    } catch (e) {
-        // Not JSON (or body not readable yet) - leave untouched.
-    }
-    xhr.__ttMutatedText = mutated;
-    return mutated;
-}
-
-function patchXHR() {
-    const originalOpen = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-        this.__ttIsNextCall = typeof url === 'string' && url.includes('/youtubei/v1/next');
-        return originalOpen.call(this, method, url, ...rest);
-    };
-
-    const responseTextDescriptor = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, 'responseText');
-    const responseDescriptor = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, 'response');
-
-    Object.defineProperty(XMLHttpRequest.prototype, 'responseText', {
-        configurable: true,
-        get: function () {
-            if (this.__ttIsNextCall && configRead('enableStopAtPlaylistEnd')) {
-                return getMutatedResponseText(this, responseTextDescriptor.get);
-            }
-            return responseTextDescriptor.get.call(this);
-        }
-    });
-
-    Object.defineProperty(XMLHttpRequest.prototype, 'response', {
-        configurable: true,
-        get: function () {
-            if (this.__ttIsNextCall && configRead('enableStopAtPlaylistEnd')) {
-                const text = getMutatedResponseText(this, responseTextDescriptor.get);
-                if (this.responseType === '' || this.responseType === 'text') return text;
-                if (this.responseType === 'json') {
-                    try { return JSON.parse(text); } catch (e) { /* fall through */ }
+                        const preview = nextRenderer?.item?.previewButtonRenderer;
+                        if (preview) {
+                            preview.title = pivot.title;
+                            preview.thumbnail = pivot.thumbnail;
+                            preview.byline = pivot.shortBylineText;
+                            preview.subtitle = { simpleText: 'Replay' };
+                        }
+                    }
                 }
             }
-            return responseDescriptor.get.call(this);
         }
-    });
-}
-
-patchXHR();
+    } catch (e) {
+        console.error('[TizenTube] stopAtPlaylistEnd: failed to process response', e);
+    }
+    return r;
+};
