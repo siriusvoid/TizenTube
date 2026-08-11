@@ -5,25 +5,27 @@ import { configRead } from '../config.js';
 // (NORMAL mode) falls back to an unrelated recommended video - that's what
 // produced the original "random video" behavior.
 //
-// Important distinction found via CDP + on-device testing: that `sets`
-// data only controls what native code silently navigates *to* once
-// playback ends - it does NOT control what's visually shown. The visible
-// "Up Next"/"Replay" screen is a *separate*, server-authored object at
-// playerOverlays.playerOverlayRenderer (.autoplay or .replay). In the true
-// end-of-playlist case, the server includes neither key at all - the app
-// was apparently never designed to reach a "nothing left to play" state,
-// so nothing renders (confirmed via CDP: no endscreen/overlay component
-// gets created - a black screen). A first attempt that repointed `sets`
-// at the current video did stop the "random video" jump, but caused an
-// instant, invisible auto-replay with no visible screen at all, since
-// `sets` alone drives navigation independent of any UI.
+// Investigation notes (see project reference for context):
+// - contents.autoplay.autoplay.sets drives silent auto-navigation only -
+//   it does NOT control anything visible. Playlist transitions in this app
+//   are always silent cuts regardless, confirmed by testing.
+// - A normal, non-playlist video reaching its end DOES show a real native
+//   "Up Next" overlay (confirmed by testing) - driven by a *separate*,
+//   server-authored object at playerOverlays.playerOverlayRenderer.autoplay
+//   .playerOverlayAutoplayRenderer. In the true end-of-playlist case the
+//   server never includes this key at all (the app wasn't designed for
+//   "nothing left to play"), so nothing renders - a black screen.
+// - An earlier attempt synthesized playerOverlays.playerOverlayRenderer
+//   .replay instead of .autoplay - that key does not correspond to a
+//   working rendered component in this app and caused the player to exit
+//   back to the playlist list.
 //
-// Fix: remove the NORMAL set entirely so nothing auto-navigates, and
-// synthesize a playerOverlayReplayRenderer ourselves - reusing the same
-// shape already used elsewhere in real captured responses for a genuine
-// "Replay" screen - built from replayVideoRenderer.pivotVideoRenderer
-// data, which is present in every /next response regardless of playlist
-// state.
+// Fix: remove the NORMAL set's autoplayVideoRenderer (the actual silent
+// auto-navigation trigger) so nothing auto-transitions, and synthesize a
+// real playerOverlayAutoplayRenderer - the same shape already proven to
+// render for standalone video endings - pointed at the current video via
+// replayVideoRenderer.pivotVideoRenderer, which is present in every /next
+// response regardless of playlist state.
 //
 // Uses the same global JSON.parse monkeypatch technique already used
 // elsewhere in this codebase (see adblock.js) rather than an XHR getter
@@ -43,23 +45,45 @@ JSON.parse = function () {
             if (playlist && sets && pivot?.navigationEndpoint?.watchEndpoint) {
                 const isLastVideo = playlist.currentIndex === playlist.totalVideos - 1;
                 if (isLastVideo) {
-                    // 1. Remove the NORMAL autoplay set entirely so there is
-                    // nothing left for native code to silently navigate to.
-                    const normalIndex = sets.findIndex((s) => s.mode === 'NORMAL');
-                    if (normalIndex !== -1) sets.splice(normalIndex, 1);
+                    // 1. Remove the silent auto-navigation trigger for the
+                    // NORMAL set so nothing transitions on its own.
+                    for (const set of sets) {
+                        if (set.mode === 'NORMAL') {
+                            delete set.autoplayVideoRenderer;
+                        }
+                    }
 
-                    // 2. Synthesize the visible replay overlay, since the
-                    // server doesn't provide one in this scenario.
+                    // 2. Synthesize the real "Up Next" overlay - same shape
+                    // proven to render for standalone video endings -
+                    // pointed at the current video instead of a
+                    // recommendation.
                     if (overlayRenderer) {
-                        overlayRenderer.replay = {
-                            playerOverlayReplayRenderer: {
+                        const byline = pivot.shortBylineText?.runs?.[0]?.text
+                            ? { simpleText: pivot.shortBylineText.runs[0].text }
+                            : pivot.shortBylineText;
+
+                        overlayRenderer.autoplay = {
+                            playerOverlayAutoplayRenderer: {
+                                title: { simpleText: 'Up next' },
+                                videoTitle: pivot.title,
+                                byline,
+                                cancelText: { simpleText: 'Cancel' },
+                                pauseText: { simpleText: 'Auto-play is paused' },
                                 background: pivot.thumbnail,
+                                countDownSecs: 5,
+                                nextButton: {
+                                    buttonRenderer: {
+                                        isDisabled: false,
+                                        icon: { iconType: 'PLAYING' },
+                                        navigationEndpoint: pivot.navigationEndpoint,
+                                        accessibility: { label: 'Play next video' },
+                                        trackingParams: pivot.trackingParams ?? ''
+                                    }
+                                },
                                 trackingParams: pivot.trackingParams ?? '',
-                                overlayIcon: pivot.overlayIcon ?? { iconType: 'REPLAY' },
-                                overlayLabel: pivot.overlayLabel ?? { simpleText: 'Replay' },
-                                navigationEndpoint: pivot.navigationEndpoint,
-                                shortBylineText: pivot.shortBylineText,
-                                title: pivot.title
+                                preferImmediateRedirect: false,
+                                videoId: pivot.videoId,
+                                countDownSecsForFullscreen: 5
                             }
                         };
                     }
