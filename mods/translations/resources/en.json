@@ -61,6 +61,7 @@
                         "milliseconds": "{{value}}ms",
                         "seconds": "{{value}}s"
                     },
+                    "stopAtPlaylistEnd": "Stop at Playlist End",
                     "shorts": "Enable Shorts",
                     "videoPreviews": "Enable Video Previews",
                     "ttWelcomeMsg": "Show TT Welcome Message",
@@ -210,5 +211,8 @@
             "skip": "Skip {{segment}}",
             "skipToHighlight": "Skip to highlight"
         }
+    },
+    "playlistEnd": {
+        "title": "End of playlist"
     }
 }

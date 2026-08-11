@@ -315,6 +315,11 @@ export default function modernUI(update, parameters) {
                     })
                 },
                 {
+                    name: t('settings.options.misc.options.stopAtPlaylistEnd'),
+                    icon: 'PAUSE',
+                    value: 'enableStopAtPlaylistEnd'
+                },
+                {
                     name: t('settings.options.misc.options.shorts'),
                     icon: 'YOUTUBE_SHORTS_FILL_24',
                     value: 'enableShorts'

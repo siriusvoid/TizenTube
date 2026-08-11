@@ -61,6 +61,7 @@
                         "milliseconds": "{{value}} мс",
                         "seconds": "{{value}} с"
                     },
+                    "stopAtPlaylistEnd": "Останавливать в конце плейлиста",
                     "shorts": "Shorts",
                     "videoPreviews": "Предпросмотр видео",
                     "ttWelcomeMsg": "Приветственное сообщение",
@@ -209,5 +210,8 @@
             "skip": "Пропустить {{segment}}",
             "skipToHighlight": "Перейти к ключевому моменту"
         }
+    },
+    "playlistEnd": {
+        "title": "Конец плейлиста"
     }
 }

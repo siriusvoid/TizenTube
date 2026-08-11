@@ -25,6 +25,7 @@ const defaultConfig = {
   enableLongPress: true,
   enableInstantSeek: true,
   instantSeekDelayMs: 500,
+  enableStopAtPlaylistEnd: false,
   enableShorts: true,
   dontCheckUpdateUntil: 0,
   enableWhoIsWatchingMenu: false,
