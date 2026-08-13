@@ -142,7 +142,16 @@ function applyPatches() {
             }
         }
 
-        if (configRead('enablePreviousNextButtons')) {
+        if (configRead('enableHidePreviousNextButtons')) {
+            if (!previousButtonName || !nextButtonName) return inst;
+            inst[previousButtonName] = function () {
+                return null;
+            }
+
+            inst[nextButtonName] = function () {
+                return null;
+            }
+        } else if (configRead('enablePreviousNextButtons')) {
             if (!previousButtonName || !nextButtonName) return inst;
             inst[previousButtonName] = function () {
                 return ButtonRenderer(

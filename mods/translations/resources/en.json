@@ -78,6 +78,7 @@
                         "options": {
                             "enableVPUIPatching": "Enable Video Player UI Patching",
                             "previousNextBtns": "Enable Previous and Next Buttons",
+                            "hidePreviousNextBtns": "Hide Previous and Next Buttons",
                             "showSuperThxBtn": "Show Super Thanks Button",
                             "showAIAskBtn": "Show Ask Button",
                             "showSpeedCtrlBtn": "Show Speed Controls Button",

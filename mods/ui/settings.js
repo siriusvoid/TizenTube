@@ -385,6 +385,11 @@ export default function modernUI(update, parameters) {
                             value: 'enablePreviousNextButtons'
                         },
                         {
+                            name: t('settings.options.videoPlayer.options.patching.options.hidePreviousNextBtns'),
+                            icon: 'SKIP_NEXT',
+                            value: 'enableHidePreviousNextButtons'
+                        },
+                        {
                             name: t('settings.options.videoPlayer.options.patching.options.showSuperThxBtn'),
                             icon: 'MONEY_HEART',
                             value: 'enableSuperThanksButton'
