@@ -33,6 +33,7 @@ const defaultConfig = {
   enableWhosWatchingMenuOnAppExit: false,
   enableShowUserLanguage: true,
   enableShowOtherLanguages: false,
+  enableDisableForcedSubtitles: false,
   showWelcomeToast: true,
   enablePreviousNextButtons: true,
   enableSuperThanksButton: false,
