@@ -86,6 +86,7 @@
                         "options": {
                             "enableVPUIPatching": "Включить патч интерфейса видеоплеера",
                             "previousNextBtns": "Кнопки «Предыдущее/Следующее»",
+                            "hidePreviousNextBtns": "Скрыть «Предыдущее/Следующее»",
                             "showSuperThxBtn": "Кнопка Super Thanks",
                             "showSpeedCtrlBtn": "Кнопка скорости", 
                             "addMPBtn": "Отображать мини-плеер",

@@ -36,6 +36,7 @@ const defaultConfig = {
   enableDisableForcedSubtitles: false,
   showWelcomeToast: true,
   enablePreviousNextButtons: true,
+  enableHidePreviousNextButtons: false,
   enableSuperThanksButton: false,
   enableAIAskButton: false,
   enableSpeedControlsButton: true,
