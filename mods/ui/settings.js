@@ -354,6 +354,10 @@ export default function modernUI(update, parameters) {
                 {
                     name: t('settings.options.subtitles.options.showHiddenSubtitles'),
                     value: 'enableShowOtherLanguages'
+                },
+                {
+                    name: t('settings.options.subtitles.options.disableForcedSubtitles'),
+                    value: 'enableDisableForcedSubtitles'
                 }
             ]
         },

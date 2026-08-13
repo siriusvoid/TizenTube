@@ -90,6 +90,16 @@ JSON.parse = function () {
       processShelves(r.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.sectionListRenderer.contents);
     }
 
+    if (
+      r?.captions?.playerCaptionsTracklistRenderer?.audioTracks &&
+      configRead('enableDisableForcedSubtitles')
+    ) {
+      for (const track of r.captions.playerCaptionsTracklistRenderer.audioTracks) {
+        delete track.captionsInitialState;
+        track.hasDefaultTrack = false;
+      }
+    }
+
     if (r.endscreen && configRead('enableHideEndScreenCards')) {
       r.endscreen = null;
     }
