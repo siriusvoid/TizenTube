@@ -142,6 +142,30 @@ function applyPatches() {
             }
         }
 
+        if (configRead('enableHideLikeDislikeButton')) {
+            const origEngagementActionButton = inst[engagementActionButton];
+            inst[engagementActionButton] = function () {
+                const res = origEngagementActionButton.apply(this, arguments);
+                return res.filter(item => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_LIKE_BUTTON');
+            }
+        }
+
+        if (configRead('enableHideCommentsButton')) {
+            const origEngagementActionButton = inst[engagementActionButton];
+            inst[engagementActionButton] = function () {
+                const res = origEngagementActionButton.apply(this, arguments);
+                return res.filter(item => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_COMMENTS');
+            }
+        }
+
+        if (configRead('enableHideSaveToPlaylistButton')) {
+            const origEngagementActionButton = inst[engagementActionButton];
+            inst[engagementActionButton] = function () {
+                const res = origEngagementActionButton.apply(this, arguments);
+                return res.filter(item => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_ADD_TO_PLAYLIST');
+            }
+        }
+
         if (configRead('enableHidePreviousNextButtons')) {
             if (!previousButtonName || !nextButtonName) return inst;
             inst[previousButtonName] = function () {

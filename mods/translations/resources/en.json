@@ -78,6 +78,9 @@
                         "options": {
                             "enableVPUIPatching": "Enable Video Player UI Patching",
                             "previousNextBtns": "Enable Previous and Next Buttons",
+                            "hideLikeDislikeBtn": "Hide Like and Dislike Buttons",
+                            "hideCommentsBtn": "Hide Comments Button",
+                            "hideSaveToPlaylistBtn": "Hide Save to Playlist Button",
                             "hidePreviousNextBtns": "Hide Previous and Next Buttons",
                             "showSuperThxBtn": "Show Super Thanks Button",
                             "showAIAskBtn": "Show Ask Button",

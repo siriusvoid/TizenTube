@@ -390,6 +390,19 @@ export default function modernUI(update, parameters) {
                             value: 'enableHidePreviousNextButtons'
                         },
                         {
+                            name: t('settings.options.videoPlayer.options.patching.options.hideLikeDislikeBtn'),
+                            value: 'enableHideLikeDislikeButton'
+                        },
+                        {
+                            name: t('settings.options.videoPlayer.options.patching.options.hideCommentsBtn'),
+                            value: 'enableHideCommentsButton'
+                        },
+                        {
+                            name: t('settings.options.videoPlayer.options.patching.options.hideSaveToPlaylistBtn'),
+                            icon: 'BOOKMARK_BORDER',
+                            value: 'enableHideSaveToPlaylistButton'
+                        },
+                        {
                             name: t('settings.options.videoPlayer.options.patching.options.showSuperThxBtn'),
                             icon: 'MONEY_HEART',
                             value: 'enableSuperThanksButton'
