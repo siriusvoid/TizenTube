@@ -90,6 +90,8 @@
                             "hideLikeDislikeBtn": "Скрыть «Нравится/Не нравится»",
                             "hideCommentsBtn": "Скрыть комментарии",
                             "hideSaveToPlaylistBtn": "Скрыть «Сохранить в плейлист»",
+                            "hideSubscribeBtn": "Скрыть «Подписаться»",
+                            "hideAboutBtn": "Скрыть «Описание»",
                             "showSuperThxBtn": "Кнопка Super Thanks",
                             "showSpeedCtrlBtn": "Кнопка скорости", 
                             "addMPBtn": "Отображать мини-плеер",

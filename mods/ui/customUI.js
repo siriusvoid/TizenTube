@@ -98,6 +98,87 @@ function applyPatches() {
 
         const engagementActionButton = functions.find(func => func.rhs.includes('props.data.engagementActions')).left.split('.')[1];
 
+        // Nr (real name varies per build — minified) is the shared per-row
+        // renderer used for every button row in this class, including the
+        // promoted-actions row (Channel/About/Subscribe) and the engagement
+        // row (Like/Comments/etc). It's a plain prototype method, not an
+        // assignment, so extractAssignedFunctions above won't find it — we
+        // locate it here by a stable marker instead: 'subscribeButtonRenderer'
+        // is a real Innertube schema name (not a minifier artifact), so this
+        // should keep resolving correctly even if the internal method name
+        // changes on a future YouTube TV frontend rebuild.
+        function findMethodNameByBodyMarker(source, marker) {
+            const re = /(?:^|[;,{}\s])([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{/g;
+            let m;
+            while ((m = re.exec(source)) !== null) {
+                const braceStart = source.indexOf('{', m.index);
+                let depth = 1, i = braceStart + 1;
+                while (i < source.length && depth > 0) {
+                    if (source[i] === '{') depth++;
+                    else if (source[i] === '}') depth--;
+                    i++;
+                }
+                if (source.slice(braceStart, i).includes(marker)) {
+                    return m[1];
+                }
+            }
+            return null;
+        }
+
+        const sharedRowRenderer = findMethodNameByBodyMarker(origMethod.toString(), 'subscribeButtonRenderer');
+
+        // The promoted-actions row (Channel/About/Subscribe) is the only one
+        // of the three button rows in this class's template() that calls
+        // this shared renderer without seamless mode — that's specifically
+        // why it can't tolerate a filtered/shrunk array the way the
+        // engagement row (Like/Comments/etc, seamless already true) can.
+        // Force seamless on for that one row only — identified by its call
+        // always passing a fixed index of 0, per template()'s own source —
+        // leaving the other rows' calls untouched.
+        if (sharedRowRenderer && (configRead('enableHideSubscribeButton') || configRead('enableHideAboutButton'))) {
+            const origSharedRowRenderer = inst[sharedRowRenderer];
+            inst[sharedRowRenderer] = function (a, b, c) {
+                if (b === 0) {
+                    c = true;
+                }
+                return origSharedRowRenderer.call(this, a, b, c);
+            }
+        }
+
+        // 'props.data.promotedActions' alone isn't a unique marker on every
+        // build — the real class can have a second, unrelated assignment
+        // whose source also happens to reference it, and .find() would
+        // silently grab that one instead, wrapping a property that's never
+        // actually part of the rendered row (confirmed live on-device: the
+        // toggle had no visible effect because of exactly this). The correct
+        // accessor also references 'setReminderButton' in the same
+        // expression — pairing both markers disambiguates it.
+        const promotedActionButtonMatch = functions.find(func => func.rhs.includes('props.data.promotedActions') && func.rhs.includes('setReminderButton'));
+        const promotedActionButton = promotedActionButtonMatch ? promotedActionButtonMatch.left.split('.')[1] : null;
+
+        if (promotedActionButton && configRead('enableHideSubscribeButton')) {
+            const origPromotedActionButton = inst[promotedActionButton];
+            inst[promotedActionButton] = function () {
+                const res = origPromotedActionButton.apply(this, arguments);
+                // res can legitimately be undefined in some player states —
+                // this was uncaught before and threw from inside
+                // resolveCommand's call chain (not just at render time),
+                // which was severe enough to freeze the app on navigating
+                // back.
+                if (!Array.isArray(res)) return res;
+                return res.filter(item => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_SUBSCRIBE');
+            }
+        }
+
+        if (promotedActionButton && configRead('enableHideAboutButton')) {
+            const origPromotedActionButton = inst[promotedActionButton];
+            inst[promotedActionButton] = function () {
+                const res = origPromotedActionButton.apply(this, arguments);
+                if (!Array.isArray(res)) return res;
+                return res.filter(item => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_ABOUT_BUTTON');
+            }
+        }
+
         if (engagementActionButton && configRead('enableSpeedControlsButton')) {
             const origEngagementActionButton = inst[engagementActionButton];
             inst[engagementActionButton] = function () {
