@@ -403,6 +403,16 @@ export default function modernUI(update, parameters) {
                             value: 'enableHideSaveToPlaylistButton'
                         },
                         {
+                            name: t('settings.options.videoPlayer.options.patching.options.hideSubscribeBtn'),
+                            icon: 'SUBSCRIPTIONS',
+                            value: 'enableHideSubscribeButton'
+                        },
+                        {
+                            name: t('settings.options.videoPlayer.options.patching.options.hideAboutBtn'),
+                            icon: 'INFO',
+                            value: 'enableHideAboutButton'
+                        },
+                        {
                             name: t('settings.options.videoPlayer.options.patching.options.showSuperThxBtn'),
                             icon: 'MONEY_HEART',
                             value: 'enableSuperThanksButton'

@@ -81,6 +81,8 @@
                             "hideLikeDislikeBtn": "Hide Like and Dislike Buttons",
                             "hideCommentsBtn": "Hide Comments Button",
                             "hideSaveToPlaylistBtn": "Hide Save to Playlist Button",
+                            "hideSubscribeBtn": "Hide Subscribe Button",
+                            "hideAboutBtn": "Hide About Button",
                             "hidePreviousNextBtns": "Hide Previous and Next Buttons",
                             "showSuperThxBtn": "Show Super Thanks Button",
                             "showAIAskBtn": "Show Ask Button",

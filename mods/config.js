@@ -39,6 +39,8 @@ const defaultConfig = {
   enableHideLikeDislikeButton: false,
   enableHideCommentsButton: false,
   enableHideSaveToPlaylistButton: false,
+  enableHideSubscribeButton: false,
+  enableHideAboutButton: false,
   enableHidePreviousNextButtons: false,
   enableSuperThanksButton: false,
   enableAIAskButton: false,
