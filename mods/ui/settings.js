@@ -320,6 +320,11 @@ export default function modernUI(update, parameters) {
                     value: 'enableStopAtPlaylistEnd'
                 },
                 {
+                    name: t('settings.options.misc.options.remainingTime'),
+                    icon: 'TIMER',
+                    value: 'enableRemainingTime'
+                },
+                {
                     name: t('settings.options.misc.options.shorts'),
                     icon: 'YOUTUBE_SHORTS_FILL_24',
                     value: 'enableShorts'

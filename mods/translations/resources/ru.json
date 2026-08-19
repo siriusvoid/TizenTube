@@ -62,6 +62,7 @@
                         "seconds": "{{value}} с"
                     },
                     "stopAtPlaylistEnd": "Останавливать в конце плейлиста",
+                    "remainingTime": "Показывать оставшееся время",
                     "shorts": "Shorts",
                     "videoPreviews": "Предпросмотр видео",
                     "ttWelcomeMsg": "Приветственное сообщение",

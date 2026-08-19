@@ -62,6 +62,7 @@
                         "seconds": "{{value}}s"
                     },
                     "stopAtPlaylistEnd": "Stop at Playlist End",
+                    "remainingTime": "Show Remaining Time",
                     "shorts": "Enable Shorts",
                     "videoPreviews": "Enable Video Previews",
                     "ttWelcomeMsg": "Show TT Welcome Message",
