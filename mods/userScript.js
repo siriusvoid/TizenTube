@@ -22,6 +22,7 @@ import "./features/preferredVideoQuality.js";
 import "./features/videoQueuing.js";
 import "./features/instantSeek.js";
 import "./features/stopAtPlaylistEnd.js";
+import "./features/remainingTime.js";
 import "./features/enableFeatures.js";
 import "./ui/customUI.js";
 import "./ui/customGuideAction.js";

@@ -26,6 +26,7 @@ const defaultConfig = {
   enableInstantSeek: true,
   instantSeekDelayMs: 500,
   enableStopAtPlaylistEnd: false,
+  enableRemainingTime: false,
   enableShorts: true,
   dontCheckUpdateUntil: 0,
   enableWhoIsWatchingMenu: false,
