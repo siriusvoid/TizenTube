@@ -1,4 +1,5 @@
 import { getGuide } from '../utils/innerTubeCalls.js';
+import { sidebarEntryKey } from '../utils/guideEntry.js';
 import { configRead, configWrite } from '../config.js';
 import { buttonItem, overlayPanelItemListRenderer, showModal } from './ytUI.js';
 import { t } from 'i18next';
@@ -110,7 +111,7 @@ function showSetting(settingType, parameters) {
         for (const item of guideItems) {
             const title = item.guideEntryRenderer.formattedTitle.simpleText;
             const icon = item.guideEntryRenderer.icon?.iconType;
-            const browseId = item.guideEntryRenderer.navigationEndpoint?.browseEndpoint ? item.guideEntryRenderer.navigationEndpoint.browseEndpoint.browseId : 'search';
+            const browseId = sidebarEntryKey(item.guideEntryRenderer);
 
             buttons.push(
                 buttonItem(

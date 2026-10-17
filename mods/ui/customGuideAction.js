@@ -1,6 +1,7 @@
 import { configChangeEmitter, configRead, configWrite } from "../config.js";
 import getCommandExecutor from "./customCommandExecution.js";
 import { GuideEntryRenderer } from "./ytUI.js";
+import { sidebarEntryKey } from "../utils/guideEntry.js";
 
 const origParse = JSON.parse;
 JSON.parse = function () {
@@ -95,9 +96,7 @@ JSON.parse = function () {
                 const item = section.items[j].guideEntryRenderer;
                 if (!item) continue;
                 if ((disabledSidebarContents?.length &&
-                    disabledSidebarContents.includes(item.navigationEndpoint?.browseEndpoint ?
-                        item.navigationEndpoint.browseEndpoint.browseId :
-                        'search'))
+                    disabledSidebarContents.includes(sidebarEntryKey(item)))
                     || (disableChannelsOnSidebar && item?.thumbnail)) {
                     section.items.splice(j, 1);
                     j--;
