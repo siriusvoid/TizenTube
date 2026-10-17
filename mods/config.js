@@ -19,7 +19,7 @@ const defaultConfig = {
   enableDeArrowThumbnails: false,
   focusContainerColor: '#0f0f0f',
   routeColor: '#0f0f0f',
-  enableFixedUI: (window.h5vcc && window.h5vcc.tizentube) ? false : true,
+  enableFixedUI: (window.h5vcc) ? false : true,
   enableHqThumbnails: false,
   enableChapters: true,
   enableLongPress: true,
@@ -35,6 +35,9 @@ const defaultConfig = {
   enableShowUserLanguage: true,
   enableShowOtherLanguages: false,
   enableDisableForcedSubtitles: false,
+  enableCaptionStylePersistence: true,
+  captionStyleSettings: null,
+  captionRawKeyBackups: {},
   showWelcomeToast: true,
   enablePreviousNextButtons: true,
   enableHideLikeDislikeButton: false,
@@ -66,6 +69,7 @@ const defaultConfig = {
   launchToOnStartup: null,
   reloadHomeOnStartup: true,
   disabledSidebarContents: [],
+  sidebarContentsOrder: [],
   disableChannelsOnSidebar: false,
   enableUpdater: true,
   autoFrameRate: false,
@@ -75,6 +79,10 @@ const defaultConfig = {
   enableClock: false,
   isClock12HourFormat: false,
   clockShowSeconds: false,
+  clockHideWhenVideoPlaying: false,
+  disableEnlargingThumbnails: false,
+  enableShrinkingThumbnails: false,
+  hideRelatedVideosPlayer: false,
 };
 
 let localConfig;

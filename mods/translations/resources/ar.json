@@ -6,7 +6,11 @@
         "options": {
             "socialMedia": {
                 "title": "روابط وسائل التواصل الاجتماعي",
-                "qrCodeScanMessage": "يمكنك زيارة صفحة {{name}} عبر مسح رمز QR أدناه."
+                "qrCodeScanMessage": "يمكنك زيارة صفحة {{name}} عبر مسح رمز QR أدناه.",
+                "announcements": "Announcements",
+                "group": "Group",
+                "website": "Website",
+                "githubSponsors": "GitHub Sponsors"
             },
             "adBlock": "حجب الإعلانات",
             "sponsorblock": {
@@ -64,7 +68,8 @@
                 "title": "إعدادات الترجمة",
                 "options": {
                     "showLocalSubtitle": "عرض الترجمات المحلية",
-                    "showHiddenSubtitles": "عرض الترجمات المخفية"
+                    "showHiddenSubtitles": "عرض الترجمات المخفية",
+                    "persistCaptionStyle": "Remember Caption Style"
                 }
             },
             "videoPlayer": {
@@ -79,7 +84,8 @@
                             "showSuperThxBtn": "عرض زر SuperThanks",
                             "showSpeedCtrlBtn": "عرض زر التحكم بالسرعة",
                             "addMPBtn": "عرض زر مشغل الفيديو المصغر",
-                            "swapMPWithPIP": "استبدال زر المشغل المصغر بزر صورة داخل صورة"
+                            "swapMPWithPIP": "استبدال زر المشغل المصغر بزر صورة داخل صورة",
+                            "showAIAskBtn": "Show Ask Button"
                         }
                     },
                     "preferredVideoQuality": {
@@ -98,7 +104,10 @@
                     "afrPauseDuration": {
                         "title": "مدة الإيقاف لمعدل الإطارات التلقائي",
                         "subtitle": "تحديد مدة التوقف (بالثواني) عند ضبط معدل الإطارات"
-                    }
+                    },
+                    "codecAny": "Any",
+                    "qualityAuto": "Auto",
+                    "hideRelatedVideosPlayer": "Hide Related Videos"
                 }
             },
             "uiSettings": {
@@ -146,8 +155,41 @@
                         "options": {
                             "enableClock": "تمكين الساعة",
                             "isClock12HourFormat": "استخدام نظام 12 ساعة",
-                            "clockShowSeconds": "عرض الثواني على الساعة"
+                            "clockShowSeconds": "عرض الثواني على الساعة",
+                            "clockHideWhenVideoPlaying": "Hide Clock While Video is Playing"
                         }
+                    },
+                    "categories": {
+                        "search": "Search",
+                        "home": "Home",
+                        "sports": "Sports",
+                        "news": "News",
+                        "music": "Music",
+                        "podcasts": "Podcasts",
+                        "moviesAndTv": "Movies & TV",
+                        "live": "Live",
+                        "gaming": "Gaming",
+                        "subscriptions": "Subscriptions",
+                        "library": "Library",
+                        "more": "More",
+                        "shorts": "Shorts",
+                        "searchResults": "Search Results"
+                    },
+                    "disableEnlargingThumbnails": "Disable Enlarged Thumbnails",
+                    "enableShrinkingThumbnails": "Enable Shrinked Thumbnails",
+                    "sortSidebarContents": {
+                        "title": "Sort Sidebar Contents",
+                        "subtitle": "Reorder sidebar contents to your preference",
+                        "moveUp": {
+                            "title": "Move Up",
+                            "subtitle": "Move this item up in the sidebar"
+                        },
+                        "moveDown": {
+                            "title": "Move Down",
+                            "subtitle": "Move this item down in the sidebar"
+                        },
+                        "addToSidebar": "Add Channel to Sidebar",
+                        "removeFromSidebar": "Remove Channel from Sidebar"
                     }
                 }
             },
@@ -158,7 +200,38 @@
                 "options": {
                     "checkForUpdates": "التحقق من التحديثات",
                     "checkForUpdatesOnStartup": "التحقق من التحديثات عند بدء التشغيل"
+                },
+                "updateAvailable": {
+                    "title": "Update Available",
+                    "subtitle": "A new version of TizenTube Cobalt is available: {{latestVersion}}, current: {{currentVersion}}"
+                },
+                "releaseDate": "Release Date: {{date}}",
+                "updateNow": {
+                    "title": "Update Now",
+                    "subtitle": "Click to download the latest version."
+                },
+                "remindLater": {
+                    "title": "Remind Me Later",
+                    "subtitle": "Check for updates later."
+                },
+                "upToDate": {
+                    "title": "TizenTube is up to date",
+                    "subtitle": "You are using the latest version ({{version}}) of TizenTube Cobalt."
+                },
+                "checkFailed": {
+                    "title": "TizenTube update check failed",
+                    "subtitle": "Could not check for updates."
+                },
+                "downloading": {
+                    "title": "TizenTube Update",
+                    "subtitle": "Downloading update, please wait..."
                 }
+            },
+            "time": {
+                "second": "{{count}} second",
+                "seconds": "{{count}} seconds",
+                "minute": "{{count}} minute",
+                "minutes": "{{count}} minutes"
             }
         },
         "ttSettings": {
@@ -201,5 +274,59 @@
             "skip": "تخطي {{segment}}",
             "skipToHighlight": "الإنتقال إلى ابرز لقطة"
         }
+    },
+    "player": {
+        "playbackSpeed": {
+            "title": "Playback Speed",
+            "button": "Speed Controls",
+            "fixStuttering": "Fix stuttering (1.0001x)"
+        },
+        "miniPlayer": "Mini Player",
+        "pictureInPicture": "Picture in Picture",
+        "previous": "Previous",
+        "next": "Next",
+        "withTizenTube": "with TizenTube",
+        "share": {
+            "title": "Share",
+            "button": "Share",
+            "qrCodeScanMessage": "Scan the QR code below to share this video."
+        },
+        "screenOff": "Turn off screen",
+        "chapters": {
+            "title": "Chapters",
+            "enterNudge": "To view chapters, press the up arrow button",
+            "navNudge": "Navigate between chapters",
+            "navNudgeA11y": "Press the left or right arrow button to navigate between chapters"
+        },
+        "queue": {
+            "title": "Queued Videos",
+            "clear": "Clear Queue"
+        },
+        "subtitles": {
+            "otherLanguages": "Other Languages"
+        }
+    },
+    "toasts": {
+        "videoAddedToQueue": "Video added to queue.",
+        "videoQueueCleared": "Video queue cleared.",
+        "sidebarContentsUpdated": {
+            "title": "Sidebar Contents Updated",
+            "subtitle": "The sidebar contents have been updated."
+        },
+        "feedbackSent": "Feedback sent."
+    },
+    "videoMenu": {
+        "notInterested": "Not interested",
+        "dontRecommendChannel": "Don't recommend channel",
+        "play": "Play",
+        "saveToWatchLater": "Save to Watch Later",
+        "removeFromWatchLater": "Remove from Watch Later",
+        "saveToPlaylist": "Save to Playlist",
+        "addToQueue": "Add to Queue",
+        "goToChannel": "Go To Channel",
+        "videoOptions": "Video options"
+    },
+    "common": {
+        "back": "Back"
     }
 }

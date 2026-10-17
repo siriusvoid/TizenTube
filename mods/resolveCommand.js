@@ -2,8 +2,12 @@ import { configWrite, configRead } from './config.js';
 import { enablePip } from './features/pictureInPicture.js';
 import modernUI, { optionShow } from './ui/settings.js';
 import { speedSettings } from './ui/speedUI.js';
-import { showToast, buttonItem } from './ui/ytUI.js';
+import { showToast, buttonItem, showModal, QrCodeRenderer, overlayPanelItemListRenderer, overlayMessageRenderer } from './ui/ytUI.js';
 import checkForUpdates from './features/updater.js';
+import { t } from 'i18next';
+import { requestNextAndNavigateChannel, getFeedbackPanelTokens, sendFeedbackToken } from './utils/innerTubeCalls.js';
+import qrcode from 'qrcode-npm';
+import showGuideSettings from './ui/sidebarModification.js';
 
 export default function resolveCommand(cmd, _) {
     // resolveCommand function is pretty OP, it can do from opening modals, changing client settings and way more.
@@ -78,8 +82,9 @@ export function patchResolveCommand() {
                     // Patch the playback settings popup to use TizenTube speed settings
                     const items = cmd.openPopupAction.popup.overlaySectionRenderer.overlay.overlayTwoPanelRenderer.actionPanel.overlayPanelRenderer.content.overlayPanelItemListRenderer.items;
                     for (const item of items) {
-                        if (item?.compactLinkRenderer?.icon?.iconType === 'SLOW_MOTION_VIDEO') {
-                            item.compactLinkRenderer.subtitle && (item.compactLinkRenderer.subtitle.simpleText = 'with TizenTube');
+                        const iconType = item?.compactLinkRenderer?.icon?.iconType;
+                        if (iconType === 'SLOW_MOTION_VIDEO' || iconType === 'SPEEDOMETER') {
+                            item.compactLinkRenderer.subtitle && (item.compactLinkRenderer.subtitle.simpleText = t('player.withTizenTube'));
                             item.compactLinkRenderer.serviceEndpoint = {
                                 clickTrackingParams: "null",
                                 signalAction: {
@@ -94,7 +99,7 @@ export function patchResolveCommand() {
 
                     cmd.openPopupAction.popup.overlaySectionRenderer.overlay.overlayTwoPanelRenderer.actionPanel.overlayPanelRenderer.content.overlayPanelItemListRenderer.items.splice(2, 0,
                         buttonItem(
-                            { title: 'Mini Player' },
+                            { title: t('player.miniPlayer') },
                             { icon: 'CLEAR_COOKIES' }, [
                             {
                                 customAction: {
@@ -104,12 +109,36 @@ export function patchResolveCommand() {
                         ])
                     );
 
-                    if (window.h5vcc && window.h5vcc.tizentube && window.h5vcc.tizentube.HasSystemFeature && 
+                    cmd.openPopupAction.popup.overlaySectionRenderer.overlay.overlayTwoPanelRenderer.actionPanel.overlayPanelRenderer.content.overlayPanelItemListRenderer.items.splice(3, 0,
+                        buttonItem(
+                            { title: t('player.share.button') },
+                            { icon: 'OPEN_IN_NEW' }, [
+                            {
+                                customAction: {
+                                    action: 'SHARE'
+                                }
+                            }
+                        ])
+                    );
+
+                    cmd.openPopupAction.popup.overlaySectionRenderer.overlay.overlayTwoPanelRenderer.actionPanel.overlayPanelRenderer.content.overlayPanelItemListRenderer.items.splice(3, 0,
+                        buttonItem(
+                            { title: t('player.screenOff') },
+                            { icon: 'EYE_OFF' }, [
+                            {
+                                customAction: {
+                                    action: 'SCREEN_OFF'
+                                }
+                            }
+                        ])
+                    );
+
+                    if (window.h5vcc && window.h5vcc.tizentube && window.h5vcc.tizentube.HasSystemFeature &&
                         window.h5vcc.tizentube.HasSystemFeature('android.software.picture_in_picture')) {
                         cmd.openPopupAction.popup.overlaySectionRenderer.overlay.overlayTwoPanelRenderer.actionPanel.overlayPanelRenderer.content.overlayPanelItemListRenderer.items.splice(3, 0,
                             buttonItem(
-                                { title: 'Picture in Picture' },
-                                { icon: 'PIP' }, [
+                                { title: t('player.pictureInPicture') },
+                                { icon: 'TV' }, [
                                 {
                                     customAction: {
                                         action: 'ENTER_PIP'
@@ -117,7 +146,7 @@ export function patchResolveCommand() {
                                 },
                                 {
                                     signalAction: {
-                                         signal: 'POPUP_BACK'
+                                        signal: 'POPUP_BACK'
                                     }
                                 }
                             ])
@@ -194,7 +223,7 @@ function customAction(action, parameters) {
             break;
         case 'UPDATE_DOWNLOAD':
             window.h5vcc.tizentube.InstallAppFromURL(parameters);
-            showToast('TizenTube Update', 'Downloading update, please wait...');
+            showToast(t('settings.options.updater.downloading.title'), t('settings.options.updater.downloading.subtitle'));
             break;
         case 'SET_PLAYER_SPEED':
             const speed = Number(parameters);
@@ -211,14 +240,138 @@ function customAction(action, parameters) {
             break;
         case 'ADD_TO_QUEUE':
             window.queuedVideos.videos.push(parameters);
-            showToast('TizenTube', 'Video added to queue.');
+            showToast('TizenTube', t('toasts.videoAddedToQueue'));
             break;
         case 'CLEAR_QUEUE':
             window.queuedVideos.videos = [];
-            showToast('TizenTube', 'Video queue cleared.');
+            showToast('TizenTube', t('toasts.videoQueueCleared'));
             break;
         case 'CHECK_FOR_UPDATES':
             checkForUpdates(true);
             break;
+        case 'GO_TO_CHANNEL':
+            requestNextAndNavigateChannel(parameters);
+            break;
+        case 'NOT_INTERESTED':
+            markFeedback(parameters, 0, true);
+            break;
+        case 'DONT_RECOMMEND_CHANNEL':
+            markFeedback(parameters, 1, false);
+            break;
+        case 'FEEDBACK_REASON':
+            sendFeedbackToken(parameters.token)
+                .then(() => {
+                    resolveCommand({
+                        signalAction: {
+                            signal: 'POPUP_BACK'
+                        }
+                    });
+                    showToast('TizenTube', t('toasts.feedbackSent'));
+                })
+                .catch(err => console.error('TizenTube: failed to send feedback:', err));
+            break;
+        case 'SHARE':
+            const videoPlayer = document.querySelector('.html5-video-player');
+            const videoData = videoPlayer.getVideoData();
+            const videoId = videoData.video_id;
+            const shareUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+            const qr = qrcode.qrcode(6, 'H');
+            qr.addData(shareUrl);
+            qr.make();
+
+            const qrDataImgTag = qr.createImgTag(8, 8);
+            const qrDataUrl = qrDataImgTag.match(/src="([^"]+)"/)[1];
+
+            showModal({
+                title: t('player.share.title'),
+            }, overlayPanelItemListRenderer([
+                overlayMessageRenderer(t('player.share.qrCodeScanMessage')),
+                QrCodeRenderer(qrDataUrl)
+            ]), 'tt-share-modal');
+            break;
+        case 'SHOW_GUIDE_BUTTONS':
+            showGuideSettings('SHOW_GUIDE_BUTTONS', parameters);
+            break;
+        case 'RELOAD_GUIDE_OPTIONS':
+            showGuideSettings(parameters.settingType, true);
+            break;
+        case 'MOVE_GUIDE_BUTTON':
+            showGuideSettings('MOVE_GUIDE_BUTTON', parameters);
+            break;
+        case 'SHOW_GUIDE_SETTINGS':
+            showGuideSettings(parameters);
+            break;
+        case 'ADD_OR_REMOVE_CHANNEL_TO_SIDEBAR':
+            const sortedSidebarContents = configRead('sidebarContentsOrder');
+
+            if (sortedSidebarContents.find(item => item.browseId === parameters.browseId)) {
+                sortedSidebarContents.splice(sortedSidebarContents.findIndex(item => item.browseId === parameters.browseId), 1);
+            } else {
+                sortedSidebarContents.push({
+                    browseId: parameters.browseId,
+                    title: parameters.title,
+                });
+            }
+            configWrite('sidebarContentsOrder', sortedSidebarContents);
+            showToast(t('toasts.sidebarContentsUpdated.title'), t('toasts.sidebarContentsUpdated.subtitle'));
+            break;
+        case 'SCREEN_OFF':
+            for (const child of document.body.children) {
+                if (child.tagName.toLowerCase() === 'script' || child.tagName.toLowerCase() === 'svg') continue;
+                child.style.setProperty('display', 'none', 'important');
+            }
+            window.screenTurnedOffAt = Date.now();
+            break;
     }
+}
+
+// YouTube moved the "Not interested" / "Don't recommend channel" feedback tokens
+// out of the long press menu into an engagement panel (see getFeedbackPanel in
+// adblock.js). Fetch the panel first, then send the feedback with the token it
+// returns (token 0 = "Not interested", token 1 = "Don't recommend channel").
+// If YouTube asks for a dismissal reason, present the reasons in a modal and send
+// the selected one (see FEEDBACK_REASON).
+async function markFeedback(parameters, tokenIndex, showReasons) {
+    try {
+        const tokens = await getFeedbackPanelTokens(parameters.panelId, parameters.params);
+        const token = tokens[tokenIndex];
+        if (!token) return;
+
+        const response = await sendFeedbackToken(token);
+        if (!showReasons) return;
+
+        const dismissal = response?.feedbackResponses?.[0]?.followUpDialog?.dismissalFollowUpRenderer;
+        const reasons = dismissal?.reasons;
+        if (!Array.isArray(reasons) || !reasons.length) return;
+
+        const buttons = reasons.map((reason) => buttonItem(
+            { title: extractText(reason.title) },
+            null,
+            [
+                {
+                    signalAction: {
+                        signal: 'POPUP_BACK'
+                    }
+                },
+                {
+                    customAction: {
+                        action: 'FEEDBACK_REASON',
+                        parameters: { token: reason.token }
+                    }
+                }
+            ]
+        ));
+        showModal(extractText(dismissal.dismissalReasonsPrompt), overlayPanelItemListRenderer(buttons), 'tt-feedback-reasons');
+    } catch (err) {
+        console.error('TizenTube: failed to mark feedback:', err);
+    }
+}
+
+function extractText(text) {
+    if (!text) return '';
+    if (text.simpleText) return text.simpleText;
+    if (text.content) return text.content;
+    if (Array.isArray(text.runs)) return text.runs.map((run) => run?.text ?? '').join('');
+    return String(text);
 }

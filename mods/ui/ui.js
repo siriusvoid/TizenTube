@@ -22,6 +22,19 @@ const interval = setInterval(() => {
 
 let keyTimeout = null;
 
+const keys = {
+  49: 1,
+  50: 2,
+  51: 3,
+  52: 4,
+  53: 5,
+  54: 6,
+  55: 7,
+  56: 8,
+  57: 9,
+  48: 0
+};
+
 function execute_once_dom_loaded() {
 
   // Add CSS to head.
@@ -44,6 +57,8 @@ function execute_once_dom_loaded() {
       window.tectonicConfig.featureSwitches.enableAnimations = true;
       window.tectonicConfig.featureSwitches.enableOnScrollLinearAnimation = true;
       window.tectonicConfig.featureSwitches.enableListAnimations = true;
+      window.tectonicConfig.featureSwitches.supportsLongPress = true;
+      window.tectonicConfig.featureSwitches.enableCaptionsPersistence = true;
     } catch (e) { }
   }
 
@@ -137,16 +152,34 @@ function execute_once_dom_loaded() {
       evt.keyCode,
       evt.defaultPrevented
     );
+
+    if (evt.keyCode in keys) {
+      const percentage = keys[evt.keyCode] * 10;
+      const video = document.querySelector('video');
+      video.currentTime = (percentage / 100) * video.duration;
+    }
+
+    const container = document.getElementById('container');
+
+    if (window.screenTurnedOffAt && Date.now() - window.screenTurnedOffAt > 1000) {
+      for (const child of document.body.children) {
+        if (child.tagName.toLowerCase() === 'script' || child.tagName.toLowerCase() === 'svg') continue;
+
+        child.style.setProperty('display', 'block', 'important');
+      }
+      window.screenTurnedOffAt = null;
+    }
+
     if (configRead('enableScreenDimming')) {
       if (keyTimeout) {
         clearTimeout(keyTimeout);
       }
-      document.getElementById('container').style.setProperty('opacity', '1', 'important');
+      container.style.setProperty('opacity', '1', 'important');
       keyTimeout = setTimeout(() => {
         const videoPlayer = document.querySelector('.html5-video-player');
         const playerStateObject = videoPlayer.getPlayerStateObject();
         if (playerStateObject.isPlaying) return;
-        document.getElementById('container').style.setProperty('opacity', (1 - configRead('dimmingOpacity')).toString(), 'important');
+        container.style.setProperty('opacity', (1 - configRead('dimmingOpacity')).toString(), 'important');
       }, configRead('dimmingTimeout') * 1000);
     }
     if (evt.keyCode == 403) {

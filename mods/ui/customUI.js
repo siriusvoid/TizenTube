@@ -3,6 +3,7 @@
 import { extractAssignedFunctions } from "../utils/ASTParser.js";
 import { configRead } from "../config.js";
 import { ButtonRenderer } from "./ytUI.js";
+import { t } from 'i18next';
 
 function applyPatches() {
     if (!window._yttv) return setTimeout(applyPatches, 250);
@@ -49,7 +50,7 @@ function applyPatches() {
             "button": {
                 "buttonRenderer": ButtonRenderer(
                     false,
-                    configRead('enableSwapMPWithPIP') ? 'Picture in Picture' : 'Mini Player',
+                    configRead('enableSwapMPWithPIP') ? t('player.pictureInPicture') : t('player.miniPlayer'),
                     'CLEAR_COOKIES',
                     {
                         customAction: {
@@ -188,8 +189,8 @@ function applyPatches() {
                     button: {
                         buttonRenderer: ButtonRenderer(
                             false,
-                            "Speed Controls",
-                            'SLOW_MOTION_VIDEO',
+                            t('player.playbackSpeed.button'),
+                            'SPEEDOMETER',
                             {
                                 customAction:
                                 {
@@ -261,7 +262,7 @@ function applyPatches() {
             inst[previousButtonName] = function () {
                 return ButtonRenderer(
                     false,
-                    'Previous',
+                    t('player.previous'),
                     'SKIP_PREVIOUS',
                     {
                         signalAction: {
@@ -274,7 +275,7 @@ function applyPatches() {
             inst[nextButtonName] = function () {
                 return ButtonRenderer(
                     false,
-                    'Next',
+                    t('player.next'),
                     'SKIP_NEXT',
                     {
                         signalAction: {

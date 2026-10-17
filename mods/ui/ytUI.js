@@ -1,3 +1,4 @@
+import { t } from 'i18next';
 import resolveCommand from '../resolveCommand.js';
 
 function showToast(title, subtitle, thumbnails) {
@@ -66,7 +67,7 @@ function Modal(header, content, id, update) {
                                 buttonRenderer: {
                                     accessibilityData: {
                                         accessibilityData: {
-                                            label: 'Back'
+                                            label: t('common.back')
                                         }
                                     },
                                     command: {
@@ -188,6 +189,15 @@ function timelyAction(text, icon, command, triggerTimeMs, timeoutMs) {
 }
 
 function longPressData(data) {
+    const isWatchLaterItem = data.watchEndpointData.playlistId === 'WL';
+    const watchLaterAction = isWatchLaterItem ? {
+        removedVideoId: data.videoId,
+        action: 'ACTION_REMOVE_VIDEO_BY_VIDEO_ID'
+    } : {
+        addedVideoId: data.videoId,
+        action: 'ACTION_ADD_VIDEO'
+    };
+
     return {
         clickTrackingParams: null,
         showMenuCommand: {
@@ -204,29 +214,30 @@ function longPressData(data) {
             menu: {
                 menuRenderer: {
                     items: [
-                        MenuNavigationItemRenderer('Play', {
+                        MenuNavigationItemRenderer(t('videoMenu.play'), {
                             clickTrackingParams: null,
                             watchEndpoint: data.watchEndpointData
                         }),
-                        MenuServiceItemRenderer('Save to Watch Later', {
+                        MenuServiceItemRenderer(isWatchLaterItem ? t('videoMenu.removeFromWatchLater') : t('videoMenu.saveToWatchLater'), {
                             clickTrackingParams: null,
+                            commandMetadata: {
+                                webCommandMetadata: {
+                                    sendPost: true,
+                                    apiUrl: '/youtubei/v1/browse/edit_playlist'
+                                }
+                            },
                             playlistEditEndpoint: {
                                 playlistId: 'WL',
-                                actions: [
-                                    {
-                                        addedVideoId: data.videoId,
-                                        action: 'ACTION_ADD_VIDEO'
-                                    }
-                                ]
+                                actions: [watchLaterAction]
                             }
                         }),
-                        MenuNavigationItemRenderer('Save to Playlist', {
+                        MenuNavigationItemRenderer(t('videoMenu.saveToPlaylist'), {
                             clickTrackingParams: null,
                             addToPlaylistEndpoint: {
                                 videoId: data.videoId
                             }
                         }),
-                        MenuServiceItemRenderer('Add to Queue', {
+                        MenuServiceItemRenderer(t('videoMenu.addToQueue'), {
                             clickTrackingParams: null,
                             playlistEditEndpoint: {
                                 customAction: {
@@ -235,11 +246,20 @@ function longPressData(data) {
                                 }
                             }
                         }),
+                        MenuServiceItemRenderer(t('videoMenu.goToChannel'), {
+                            clickTrackingParams: null,
+                            playlistEditEndpoint: {
+                                customAction: {
+                                    action: 'GO_TO_CHANNEL',
+                                    parameters: data.item
+                                }
+                            }
+                        }),
                     ],
                     trackingParams: null,
                     accessibility: {
                         accessibilityData: {
-                            label: 'Video options'
+                            label: t('videoMenu.videoOptions')
                         }
                     }
                 }
@@ -438,6 +458,36 @@ function ButtonRenderer(disabled, text, iconType, command) {
     };
 }
 
+function GuideEntryRenderer(simpleText, navigationEndpoint, icon, thumbnail) {
+    const guideEntryRenderer = {
+        guideEntryRenderer: {
+            navigationEndpoint,
+            trackingParams: null,
+            formattedTitle: {
+                simpleText
+            }
+        }
+    }
+
+    if (icon) {
+        guideEntryRenderer.guideEntryRenderer.icon = {
+            iconType: icon
+        }
+    }
+
+    if (thumbnail) {
+        guideEntryRenderer.guideEntryRenderer.thumbnail = {
+            thumbnails: [
+                {
+                    url: thumbnail
+                }
+            ]
+        }
+    }
+
+    return guideEntryRenderer;
+}
+
 export {
     showToast,
     Modal,
@@ -456,5 +506,6 @@ export {
     ShelfRenderer,
     TileRenderer,
     QrCodeRenderer,
-    ButtonRenderer
+    ButtonRenderer,
+    GuideEntryRenderer
 }

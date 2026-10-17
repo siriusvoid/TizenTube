@@ -2,7 +2,7 @@ import { configRead } from '../config.js';
 import { showModal, buttonItem, overlayPanelItemListRenderer, scrollPaneRenderer, overlayMessageRenderer, QrCodeRenderer } from './ytUI.js';
 import qrcode from 'qrcode-npm';
 import i18n, { t } from 'i18next';
-import { getComprehensiveLanguageList } from '../features/moreSubtitles.js';
+import resolveCommand from '../resolveCommand.js';
 
 const qrcodes = {};
 
@@ -43,15 +43,15 @@ export default function modernUI(update, parameters) {
                     link: 'https://discord.gg/m2P7v8Y2qR',
                 },
                 {
-                    name: 'Telegram (Announcements)',
+                    name: `Telegram (${t('settings.options.socialMedia.announcements')})`,
                     link: 'https://t.me/tizentubecobaltofficial',
                 },
                 {
-                    name: 'Telegram (Group)',
+                    name: `Telegram (${t('settings.options.socialMedia.group')})`,
                     link: 'https://t.me/tizentubeofficial',
                 },
                 {
-                    name: 'Website',
+                    name: t('settings.options.socialMedia.website'),
                     link: 'https://tizentube.6513006.xyz',
                 },
                 {
@@ -59,8 +59,8 @@ export default function modernUI(update, parameters) {
                     link: 'https://www.buymeacoffee.com/reisxd',
                 },
                 {
-                    name: 'GitHub Sponsors',
-                    link: 'https:///github.com/sponsors/reisxd',
+                    name: t('settings.options.socialMedia.githubSponsors'),
+                    link: 'https://github.com/sponsors/reisxd',
                 }
             ].map((option) => {
                 if (!qrcodes[option.name]) {
@@ -363,6 +363,10 @@ export default function modernUI(update, parameters) {
                 {
                     name: t('settings.options.subtitles.options.disableForcedSubtitles'),
                     value: 'enableDisableForcedSubtitles'
+                },
+                {
+                    name: t('settings.options.subtitles.options.persistCaptionStyle'),
+                    value: 'enableCaptionStylePersistence'
                 }
             ]
         },
@@ -458,7 +462,7 @@ export default function modernUI(update, parameters) {
                     options:
                         ['Auto', '2160p', '1440p', '1080p', '720p', '480p', '360p', '240p', '144p'].map((quality) => {
                             return {
-                                name: quality,
+                                name: quality === 'Auto' ? t('settings.options.videoPlayer.options.qualityAuto') : quality,
                                 key: 'preferredVideoQuality',
                                 value: quality.toLowerCase()
                             }
@@ -483,6 +487,11 @@ export default function modernUI(update, parameters) {
                     })
                 },
                 {
+                    name: t('settings.options.videoPlayer.options.hideRelatedVideosPlayer'),
+                    icon: 'VISIBILITY_OFF',
+                    value: 'hideRelatedVideosPlayer'
+                },
+                {
                     name: t('settings.options.videoPlayer.options.preferredVideoCodec.title'),
                     icon: 'VIDEO_QUALITY',
                     value: null,
@@ -493,7 +502,7 @@ export default function modernUI(update, parameters) {
                     },
                     options: ['any', 'vp9', 'av01', 'avc1'].map((codec) => {
                         return {
-                            name: codec === 'any' ? 'Any' : codec.toUpperCase(),
+                            name: codec === 'any' ? t('settings.options.videoPlayer.options.codecAny') : codec.toUpperCase(),
                             key: 'preferredVideoCodec',
                             value: codec
                         }
@@ -515,7 +524,7 @@ export default function modernUI(update, parameters) {
                     },
                     options: [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((seconds) => {
                         return {
-                            name: `${seconds} seconds`,
+                            name: t(seconds === 1 ? 'settings.options.time.second' : 'settings.options.time.seconds', { count: seconds }),                            
                             key: 'autoFrameRatePauseVideoFor',
                             value: seconds * 1000
                         }
@@ -566,31 +575,31 @@ export default function modernUI(update, parameters) {
                             menuId: 'tt-hide-watched-videos-pages',
                             options: [
                                 {
-                                    name: 'Search Results',
+                                    name: t('settings.options.uiSettings.options.categories.searchResults'),
                                     value: 'search'
                                 },
                                 {
-                                    name: 'Home',
+                                    name: t('settings.options.uiSettings.options.categories.home'),
                                     value: 'home'
                                 },
                                 {
-                                    name: 'Music',
+                                    name: t('settings.options.uiSettings.options.categories.music'),
                                     value: 'music'
                                 },
                                 {
-                                    name: 'Gaming',
+                                    name: t('settings.options.uiSettings.options.categories.gaming'),
                                     value: 'gaming'
                                 },
                                 {
-                                    name: 'Subscriptions',
+                                    name: t('settings.options.uiSettings.options.categories.subscriptions'),
                                     value: 'subscriptions'
                                 },
                                 {
-                                    name: 'Library',
+                                    name: t('settings.options.uiSettings.options.categories.library'),
                                     value: 'library'
                                 },
                                 {
-                                    name: 'More',
+                                    name: t('settings.options.uiSettings.options.categories.more'),
                                     value: 'more'
                                 }
                             ]
@@ -618,7 +627,7 @@ export default function modernUI(update, parameters) {
                                 subtitle: t('settings.options.uiSettings.options.screenDimming.options.dimmingTimeout.subtitle')
                             },
                             options: [10, 20, 30, 60, 120, 180, 240, 300].map((seconds) => {
-                                const title = seconds >= 60 ? `${seconds / 60} minute${seconds / 60 > 1 ? 's' : ''}` : `${seconds} seconds`;
+                                const title = seconds >= 60 ? t(`settings.options.time.minute${seconds / 60 > 1 ? 's' : ''}`, { count: seconds / 60 }) : t('settings.options.time.seconds', { count: seconds });
                                 return {
                                     name: title,
                                     key: 'dimmingTimeout',
@@ -649,79 +658,23 @@ export default function modernUI(update, parameters) {
                     name: t('settings.options.uiSettings.options.disableSidebarContents.title'),
                     icon: 'MENU',
                     value: null,
-                    arrayToEdit: 'disabledSidebarContents',
-                    menuId: 'tt-sidebar-contents',
-                    menuHeader: {
-                        title: t('settings.options.uiSettings.options.disableSidebarContents.title'),
-                        subtitle: t('settings.options.uiSettings.options.disableSidebarContents.subtitle')
-                    },
-                    options: [
-                        {
-                            name: 'Search',
-                            icon: 'SEARCH',
-                            value: 'SEARCH'
-                        },
-                        {
-                            name: 'Home',
-                            icon: 'WHAT_TO_WATCH',
-                            value: 'WHAT_TO_WATCH'
-                        },
-                        {
-                            name: 'Sports',
-                            icon: 'TROPHY',
-                            value: 'TROPHY'
-                        },
-                        {
-                            name: 'News',
-                            icon: 'NEWS',
-                            value: 'NEWS'
-                        },
-                        {
-                            name: 'Music',
-                            icon: 'YOUTUBE_MUSIC',
-                            value: 'YOUTUBE_MUSIC'
-                        },
-                        {
-                            name: 'Podcasts',
-                            icon: 'BROADCAST',
-                            value: 'BROADCAST'
-                        },
-                        {
-                            name: 'Movies & TV',
-                            icon: 'CLAPPERBOARD',
-                            value: 'CLAPPERBOARD'
-                        },
-                        {
-                            name: 'Live',
-                            icon: 'LIVE',
-                            value: 'LIVE'
-                        },
-                        {
-                            name: 'Gaming',
-                            icon: 'GAMING',
-                            value: 'GAMING'
-                        },
-                        {
-                            name: 'Subscriptions',
-                            icon: 'SUBSCRIPTIONS',
-                            value: 'SUBSCRIPTIONS'
-                        },
-                        {
-                            name: 'Library',
-                            icon: 'TAB_LIBRARY',
-                            value: 'TAB_LIBRARY'
-                        },
-                        {
-                            name: 'More',
-                            icon: 'TAB_MORE',
-                            value: 'TAB_MORE'
-                        },
-                        {
-                            name: 'Shorts',
-                            icon: 'YOUTUBE_SHORTS_FILL_24',
-                            value: 'YOUTUBE_SHORTS_FILL_24'
+                    action: {
+                        customAction: {
+                            action: 'SHOW_GUIDE_SETTINGS',
+                            parameters: 'disabledSidebarContents'
                         }
-                    ]
+                    }
+                },
+                {
+                    name: t('settings.options.uiSettings.options.sortSidebarContents.title'),
+                    icon: 'MENU',
+                    value: null,
+                    action: {
+                        customAction: {
+                            action: 'SHOW_GUIDE_SETTINGS',
+                            parameters: 'sortSidebarContents'
+                        }
+                    }
                 },
                 {
                     name: t('settings.options.uiSettings.options.launchToOnStartup.title'),
@@ -734,7 +687,7 @@ export default function modernUI(update, parameters) {
                     },
                     options: [
                         {
-                            name: 'Search',
+                            name: t('settings.options.uiSettings.options.categories.search'),
                             icon: 'SEARCH',
                             key: 'launchToOnStartup',
                             value: JSON.stringify({
@@ -742,7 +695,7 @@ export default function modernUI(update, parameters) {
                             })
                         },
                         {
-                            name: 'Home',
+                            name: t('settings.options.uiSettings.options.categories.home'),
                             icon: 'WHAT_TO_WATCH',
                             key: 'launchToOnStartup',
                             value: JSON.stringify({
@@ -750,7 +703,7 @@ export default function modernUI(update, parameters) {
                             })
                         },
                         {
-                            name: 'Sports',
+                            name: t('settings.options.uiSettings.options.categories.sports'),
                             icon: 'TROPHY',
                             key: 'launchToOnStartup',
                             value: JSON.stringify({
@@ -758,7 +711,7 @@ export default function modernUI(update, parameters) {
                             })
                         },
                         {
-                            name: 'News',
+                            name: t('settings.options.uiSettings.options.categories.news'),
                             icon: 'NEWS',
                             key: 'launchToOnStartup',
                             value: JSON.stringify({
@@ -766,7 +719,7 @@ export default function modernUI(update, parameters) {
                             })
                         },
                         {
-                            name: 'Music',
+                            name: t('settings.options.uiSettings.options.categories.music'),
                             icon: 'YOUTUBE_MUSIC',
                             key: 'launchToOnStartup',
                             value: JSON.stringify({
@@ -774,7 +727,7 @@ export default function modernUI(update, parameters) {
                             })
                         },
                         {
-                            name: 'Podcasts',
+                            name: t('settings.options.uiSettings.options.categories.podcasts'),
                             icon: 'BROADCAST',
                             key: 'launchToOnStartup',
                             value: JSON.stringify({
@@ -782,7 +735,7 @@ export default function modernUI(update, parameters) {
                             })
                         },
                         {
-                            name: 'Movies & TV',
+                            name: t('settings.options.uiSettings.options.categories.moviesAndTv'),
                             icon: 'CLAPPERBOARD',
                             key: 'launchToOnStartup',
                             value: JSON.stringify({
@@ -790,7 +743,7 @@ export default function modernUI(update, parameters) {
                             })
                         },
                         {
-                            name: 'Gaming',
+                            name: t('settings.options.uiSettings.options.categories.gaming'),
                             icon: 'GAMING',
                             key: 'launchToOnStartup',
                             value: JSON.stringify({
@@ -798,7 +751,7 @@ export default function modernUI(update, parameters) {
                             })
                         },
                         {
-                            name: 'Live',
+                            name: t('settings.options.uiSettings.options.categories.live'),
                             icon: 'LIVE',
                             key: 'launchToOnStartup',
                             value: JSON.stringify({
@@ -806,7 +759,7 @@ export default function modernUI(update, parameters) {
                             })
                         },
                         {
-                            name: 'Subscriptions',
+                            name: t('settings.options.uiSettings.options.categories.subscriptions'),
                             icon: 'SUBSCRIPTIONS',
                             key: 'launchToOnStartup',
                             value: JSON.stringify({
@@ -814,7 +767,7 @@ export default function modernUI(update, parameters) {
                             })
                         },
                         {
-                            name: 'Library',
+                            name: t('settings.options.uiSettings.options.categories.library'),
                             icon: 'TAB_LIBRARY',
                             key: 'launchToOnStartup',
                             value: JSON.stringify({
@@ -822,7 +775,7 @@ export default function modernUI(update, parameters) {
                             })
                         },
                         {
-                            name: 'More',
+                            name: t('settings.options.uiSettings.options.categories.more'),
                             icon: 'TAB_MORE',
                             key: 'launchToOnStartup',
                             value: JSON.stringify({
@@ -864,8 +817,23 @@ export default function modernUI(update, parameters) {
                             name: t('settings.options.uiSettings.options.clock.options.clockShowSeconds'),
                             icon: 'TIMER',
                             value: 'clockShowSeconds'
+                        },
+                        {
+                            name: t('settings.options.uiSettings.options.clock.options.clockHideWhenVideoPlaying'),
+                            icon: 'EYE_OFF',
+                            value: 'clockHideWhenVideoPlaying'
                         }
                     ]
+                },
+                {
+                    name: t('settings.options.uiSettings.options.disableEnlargingThumbnails'),
+                    value: 'disableEnlargingThumbnails',
+                    icon: null,
+                },
+                {
+                    name: t('settings.options.uiSettings.options.enableShrinkingThumbnails'),
+                    value: 'enableShrinkingThumbnails',
+                    icon: null,
                 }
             ]
         },
@@ -945,7 +913,8 @@ export default function modernUI(update, parameters) {
                                     update: setting.options?.title ? 'customUI' : false,
                                     menuId: setting.menuId,
                                     arrayToEdit: setting.arrayToEdit,
-                                    menuHeader: setting.menuHeader
+                                    menuHeader: setting.menuHeader,
+                                    action: setting.action
                                 }
                             }
                         }
@@ -985,6 +954,10 @@ export function optionShow(parameters, update) {
     // Check if this is the legacy sponsorBlockManualSkips (array-based) or new boolean-based options
     const isArrayBasedOptions = parameters.arrayToEdit !== undefined;
 
+    if (parameters.action) {
+        return resolveCommand(parameters.action);
+    }
+
     if (isArrayBasedOptions) {
         // Legacy handling for sponsorBlockManualSkips
         const value = configRead(parameters.arrayToEdit);
@@ -1018,7 +991,8 @@ export function optionShow(parameters, update) {
                                     update: true,
                                     menuId: parameters.menuId,
                                     arrayToEdit: parameters.arrayToEdit,
-                                    menuHeader: parameters.menuHeader
+                                    menuHeader: parameters.menuHeader,
+                                    action: parameters.action
                                 }
                             }
                         }
@@ -1037,7 +1011,7 @@ export function optionShow(parameters, update) {
                 continue;
             }
             const isRadioChoice = option.key !== null && option.key !== undefined;
-            const currentVal = configRead(isRadioChoice ? option.key : option.value);
+            const currentVal = option.value === null ? undefined : configRead(isRadioChoice ? option.key : option.value);
             buttons.push(
                 buttonItem(
                     { title: option.name, subtitle: option.subtitle },
@@ -1055,7 +1029,8 @@ export function optionShow(parameters, update) {
                                     update: option.options?.title ? 'customUI' : false,
                                     menuId: option.menuId,
                                     arrayToEdit: option.arrayToEdit,
-                                    menuHeader: option.menuHeader
+                                    menuHeader: option.menuHeader,
+                                    action: option.action
                                 }
                             }
                         }
@@ -1081,7 +1056,8 @@ export function optionShow(parameters, update) {
                                     update: parameters.options?.title ? 'customUI' : true,
                                     menuId: parameters.menuId,
                                     arrayToEdit: parameters.arrayToEdit,
-                                    menuHeader: parameters.menuHeader
+                                    menuHeader: parameters.menuHeader,
+                                    action: parameters.action
                                 }
                             }
                         }
@@ -1107,7 +1083,8 @@ export function optionShow(parameters, update) {
                                     update: parameters.options?.title ? 'customUI' : true,
                                     menuId: parameters.menuId,
                                     arrayToEdit: parameters.arrayToEdit,
-                                    menuHeader: parameters.menuHeader
+                                    menuHeader: parameters.menuHeader,
+                                    action: parameters.action
                                 }
                             }
                         }
@@ -1118,5 +1095,5 @@ export function optionShow(parameters, update) {
         }
     }
 
-    showModal(parameters.menuHeader ? parameters.menuHeader : 'TizenTube Settings', overlayPanelItemListRenderer(buttons, parameters.selectedIndex), parameters.menuId || 'tt-settings-options', update);
+    showModal(parameters.menuHeader ? parameters.menuHeader : t('settings.ttSettings.title'), overlayPanelItemListRenderer(buttons, parameters.selectedIndex), parameters.menuId || 'tt-settings-options', update);
 }
