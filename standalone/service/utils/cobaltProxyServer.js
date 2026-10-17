@@ -155,7 +155,10 @@ function startServer() {
                                 ''
                             );
 
-                            body = body.replace('</body>', `<script src="https://cdn.jsdelivr.net/npm/@foxreis/tizentube/dist/userScript.js?ver=${Date.now()}"></script></body>`);
+                            // GitHub Pages serves a new build within minutes; jsDelivr's @main
+                            // can lag for hours, so it is only the fallback.
+                            const fallback = `var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/siriusvoid/TizenTube@main/dist/userScript.js?ver=${Date.now()}';document.body.appendChild(s);`;
+                            body = body.replace('</body>', `<script src="https://siriusvoid.github.io/TizenTube/userScript.js?ver=${Date.now()}" onerror="${fallback}"></script></body>`);
 
                             headers['content-length'] = Buffer.byteLength(body, 'utf8');
                             headers['connection'] = 'close';
